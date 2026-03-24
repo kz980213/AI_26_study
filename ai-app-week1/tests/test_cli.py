@@ -1,21 +1,18 @@
-import pytest
-from app.cli import run, normalize_name
+from app.cli import build_parse, run
 
 
-def test_run_default_name():
-    result = run("AI App")
-    assert result == "Hello, AI App!"
-
-
-def test_run_custom_name():
+def test_run_should_return_message():
     result = run("kk")
     assert result == "Hello, kk!"
 
-def test_normalize_name_should_strip_spaces():
-    result = normalize_name("  kk  ")
-    assert result == "kk"
+
+def test_parser_should_use_default_name():
+    parser = build_parse()
+    args = parser.parse_args([])
+    assert args.name == "AI App"
 
 
-def test_normalize_name_should_raise_for_empty_input():
-    with pytest.raises(ValueError):
-        normalize_name("   ")
+def test_parser_should_accept_custom_name():
+    parser = build_parse()
+    args = parser.parse_args(["--name", "kk"])
+    assert args.name == "kk"

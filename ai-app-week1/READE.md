@@ -1,4 +1,6 @@
 ## 常用命令
+安装依赖：
+`python -m pip install -r requirements-dev.txt`
 
 运行项目：
 `python -m app.main`

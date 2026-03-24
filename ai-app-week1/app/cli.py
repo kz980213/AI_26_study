@@ -2,6 +2,8 @@ from app.logger import get_logger
 ##argparse 是专门用来做命令行参数解析的。
 import argparse
 
+from app.services.greeting import build_greeting
+
 logger = get_logger()
 
 def build_parse() -> argparse.ArgumentParser:
@@ -13,15 +15,9 @@ def build_parse() -> argparse.ArgumentParser:
     )
     return parser
 
-def normalize_name(name:str) -> str:
-    cleaned = name.strip()
-    if not cleaned:
-        raise ValueError("Name cannot be empty")
-    return cleaned
 
 def run(name: str) -> str:
-    safe_name = normalize_name(name)
-    message = f"Hello, {safe_name}!"
+    message = build_greeting(name)
     logger.info('CLI started')
     logger.info(message)
     return message

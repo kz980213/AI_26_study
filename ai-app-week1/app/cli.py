@@ -13,15 +13,26 @@ def build_parse() -> argparse.ArgumentParser:
     )
     return parser
 
+def normalize_name(name:str) -> str:
+    cleaned = name.strip()
+    if not cleaned:
+        raise ValueError("Name cannot be empty")
+    return cleaned
 
 def run(name: str) -> str:
-    message = f"Hello, {name}!"
+    safe_name = normalize_name(name)
+    message = f"Hello, {safe_name}!"
     logger.info('CLI started')
     logger.info(message)
     return message
 
 def main() -> None:
-    parser = build_parse() 
+    parser = build_parse()
     ##解析命令行参数
     args = parser.parse_args()
-    run(args.name)
+    try:
+        run(args.name)
+    except ValueError as e:
+        logger.error(f"Error: {e}")
+        ##让程序退出，并返回退出码 1。0 通常表示成功，非 0 通常表示失败
+        raise SystemExit(1)

@@ -19,3 +19,7 @@
 - 实现一个可运行 CLI
 - 接入日志
 
+## 安装依赖
+
+```bash
+python -m pip install -r requirements-dev.txt

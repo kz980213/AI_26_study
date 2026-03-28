@@ -1,4 +1,4 @@
-
+from app.exceptions import InvalidNameError
 def build_greeting(name: str) -> str:
     safe_name = normalize_name(name)
     return f"Hello, {safe_name}!"
@@ -6,5 +6,5 @@ def build_greeting(name: str) -> str:
 def normalize_name(name:str) -> str:
     cleaned = name.strip()
     if not cleaned:
-        raise ValueError("Name cannot be empty")
+        raise InvalidNameError("Name cannot be empty")
     return cleaned

@@ -1,5 +1,6 @@
 import pytest
 from app.services.greeting import normalize_name, build_greeting
+from app.exceptions import InvalidNameError
 
 
 def test_normalize_name_should_strip_spaces():
@@ -7,7 +8,7 @@ def test_normalize_name_should_strip_spaces():
 
 
 def test_normalize_name_should_raise_for_empty_input():
-    with pytest.raises(ValueError):
+    with pytest.raises(InvalidNameError):
         normalize_name("   ")
 
 

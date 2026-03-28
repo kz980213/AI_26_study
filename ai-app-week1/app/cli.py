@@ -3,6 +3,7 @@ from app.logger import get_logger
 import argparse
 
 from app.services.greeting import build_greeting
+from app.exceptions import InvalidNameError
 
 logger = get_logger()
 
@@ -28,7 +29,7 @@ def main() -> None:
     args = parser.parse_args()
     try:
         run(args.name)
-    except ValueError as e:
+    except InvalidNameError as e:
         logger.error(f"Error: {e}")
         ##让程序退出，并返回退出码 1。0 通常表示成功，非 0 通常表示失败
         raise SystemExit(1)

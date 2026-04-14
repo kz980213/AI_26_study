@@ -8,11 +8,19 @@ from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/users",tags=["users"])
 
-@router.get("/me", response_model=UserInfo)
+@router.get(
+        "/me", 
+        response_model=UserInfo,
+        summary="获取当前用户信息",
+        description="需要 Bearer token")
 def read_me(current_user:User=Depends(get_current_user)):
     return UserInfo(username=current_user.username)
 
-@router.put("/me/password")
+@router.put(
+    "/me/password",
+    summary="修改密码",
+    description="需要 Bearer token，且新密码不能与旧密码相同"
+)
 def change_password(
         data: ChangePasswordRequest, 
         current_user:User=Depends(get_current_user),

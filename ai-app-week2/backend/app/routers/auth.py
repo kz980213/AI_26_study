@@ -6,7 +6,11 @@ from sqlalchemy.orm import Session
 from app.models import User
 
 router = APIRouter(prefix="/auth", tags=["auth"])
-@router.post("/register")
+@router.post(
+        "/register", 
+        summary="用户注册",
+        description="注册一个新用户，用户名不可重复"
+        )
 def register(data: RegisterRequest, db: Session = Depends(get_db)):
     existing_user = db.query(User).filter(User.username == data.username).first()
     if existing_user:
@@ -18,7 +22,12 @@ def register(data: RegisterRequest, db: Session = Depends(get_db)):
     db.refresh(user)
     return {"message": "User registered successfully"}
 
-@router.post("/login")
+@router.post(
+        "/login",
+        response_model=TokenResponse,
+        summary="用户登录",
+        description="登录成功后返回 JWT token"
+    )
 def login(data: LoginRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.username == data.username).first()
     if not user:

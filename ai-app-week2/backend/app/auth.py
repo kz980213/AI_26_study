@@ -4,7 +4,9 @@ from fastapi import HTTPException, status, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import jwt, JWTError
 from passlib.context import CryptContext
-from app.db import fake_users_db
+from app.database import get_db
+from sqlalchemy.orm import Session
+from app.models import User
 
 SECRET_KEY = "dev-secret-key"
 ALGORITHM = "HS256"
@@ -34,10 +36,13 @@ def decode_access_token(token: str) -> str:
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid token")
     
-def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+def get_current_user(
+        credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+        db: Session = Depends(get_db)
+):
     token = credentials.credentials
     username = decode_access_token(token)
-    user = fake_users_db.get(username)
+    user = db.query(User).filter(User.username == username).first()
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
     return user

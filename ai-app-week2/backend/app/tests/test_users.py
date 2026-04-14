@@ -3,8 +3,8 @@ from app.main import app
 from app.db import fake_users_db
 
 client = TestClient(app)
-def setup_function():
-    fake_users_db.clear()
+# def setup_function():
+#     fake_users_db.clear()
 
 def create_user_and_login(username="kk", password="123456"):
     client.post("/auth/register", json={

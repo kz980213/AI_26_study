@@ -1,1 +1,0 @@
-fake_users_db: dict[str, dict] = {}

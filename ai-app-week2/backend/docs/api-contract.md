@@ -91,10 +91,38 @@ Authorization: Bearer <token>
 ### 第四步：写联调顺序
 
 
-```md
+
 ## 推荐联调顺序
 1. 先调 POST /auth/register
 2. 再调 POST /auth/login 获取 token
 3. 用 token 调 GET /users/me
 4. 再调 PUT /users/me/password
 
+## 当前接口范围
+- POST /auth/register
+- POST /auth/login
+- GET /users/me
+- PUT /users/me/password
+
+## 当前返回格式
+### 成功
+各接口按各自 schema 返回
+
+### 业务错误
+{
+  "code": 400,
+  "message": "..."
+}
+
+### 参数校验错误
+{
+  "code": 422,
+  "message": "Request validation failed",
+  "errors": [...]
+}
+
+## 下周前端联调建议顺序
+1. 先接登录页
+2. 完成 token 存储
+3. 接 /users/me 获取登录态
+4. 接修改密码页

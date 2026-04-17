@@ -1,8 +1,20 @@
-.venv/
-__pycache__/
-.pytest_cache/
-*.pyc
-.idea/
-.vscode/
+# frontend
+frontend/node_modules/
+frontend/dist/
+
+# backend
+backend/.venv/
+backend/__pycache__/
+backend/.pytest_cache/
+
+# env
 .env
-logs/
+*.env
+
+# editor
+.vscode/
+.idea/
+
+# system
+.DS_Store
+Thumbs.db

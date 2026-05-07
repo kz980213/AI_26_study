@@ -11,6 +11,7 @@
 import { loginApi, getMeApi } from "../api/auth";
 import { reactive, ref } from "vue";
 import { setToken, removeToken, getToken } from "../utils/storage";
+import router from "@/router";
 const userInfo = reactive({
     username: '',
     password: ''
@@ -26,6 +27,7 @@ const login = async () => {
         setToken(response.data.access_token);
         const me = await getMeApi()
         console.log('当前用户信息', me.data)
+        router.push('/home')
     } catch (error) {
         console.error('Login failed:', error);
         alert('登录失败！');

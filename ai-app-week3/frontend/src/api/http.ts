@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { removeToken } from '../utils/storage'
 
 const http = axios.create({
   baseURL: 'http://127.0.0.1:8010',
@@ -14,6 +15,16 @@ http.interceptors.request.use(
     return config
   },
   (error) => {
+    return Promise.reject(error)
+  }
+)
+
+http.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error?.response?.status === 401) {
+      removeToken()
+    }
     return Promise.reject(error)
   }
 )

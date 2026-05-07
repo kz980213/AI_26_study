@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.0.1",
   "scripts": {
-    "dev": "vite --host 127.0.0.1 --port 5181",
+    "dev": "vite --host 127.0.0.1 --port 5180",
     "build": "vue-tsc && vite build",
     "preview": "vite preview"
   },

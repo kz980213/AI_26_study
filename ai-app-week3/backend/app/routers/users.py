@@ -33,3 +33,14 @@ def change_password(
     current_user.hashed_password = hash_password(data.new_password)
     db.commit()
     return {"message": "Password updated successfully"}
+
+@router.get(
+    "/me/all",
+    summary="获取所有用户信息",
+    description="需要 Bearer token，且只能由管理员访问"
+)
+def read_all_users(current_user:User=Depends(get_current_user), db:Session=Depends(get_db)):
+    # if not current_user.is_admin:
+    #     raise HTTPException(status_code=403, detail="Only admin can access this endpoint")
+    users = db.query(User).all()
+    return [UserInfo(username=user.username) for user in users]

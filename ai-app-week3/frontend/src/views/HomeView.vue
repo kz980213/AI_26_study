@@ -1,6 +1,7 @@
 <template>
     <div>
         <h1>this is 首页</h1>
+        <button @click="fetchUsers">查看用户列表</button>
         <button @click="logout">退出登录</button>
     </div>
 </template>
@@ -13,4 +14,8 @@ const logout = () => {
     alert('已退出登录！');
     router.push('/login')
 };
+
+const fetchUsers = () => {
+    router.push('/allUsers')
+}
 </script>

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.exceptions import HTTPException as FastAPIHTTPException, RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import health, auth, users
+from app.routers import health, auth, users, stream
 from app.exceptions import http_exception_handler, validation_exception_handler
 from app.database import Base, engine
 from app.middlewares import request_log_middleware
@@ -28,3 +28,4 @@ app.middleware("http")(request_log_middleware)
 app.include_router(health.router)
 app.include_router(auth.router)
 app.include_router(users.router)
+app.include_router(stream.router)

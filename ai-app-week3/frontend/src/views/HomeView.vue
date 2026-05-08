@@ -2,6 +2,7 @@
     <div>
         <h1>this is 首页</h1>
         <button @click="fetchUsers">查看用户列表</button>
+        <button @click="goToStream">流式输出演示页</button>
         <button @click="logout">退出登录</button>
     </div>
 </template>
@@ -17,5 +18,9 @@ const logout = () => {
 
 const fetchUsers = () => {
     router.push('/allUsers')
+}
+
+const goToStream = () => {
+    router.push('/stream')
 }
 </script>

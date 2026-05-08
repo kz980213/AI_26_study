@@ -1,8 +1,10 @@
 import axios from 'axios'
 import { removeToken } from '../utils/storage'
 
+export const API_BASE_URL = 'http://127.0.0.1:8010'
+
 const http = axios.create({
-  baseURL: 'http://127.0.0.1:8010',
+  baseURL: API_BASE_URL,
   timeout: 5000,
 })
 

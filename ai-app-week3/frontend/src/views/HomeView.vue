@@ -3,6 +3,9 @@
         <h1>this is 首页</h1>
         <button @click="fetchUsers">查看用户列表</button>
         <button @click="goToStream">流式输出演示页</button>
+        <button @click="goToChat">聊天页面</button>
+        <button @click="goToTaskParser">进入 AI 任务解析页</button>
+        <button @click="goToKnowledge">进入知识库管理页</button>
         <button @click="logout">退出登录</button>
     </div>
 </template>
@@ -22,5 +25,17 @@ const fetchUsers = () => {
 
 const goToStream = () => {
     router.push('/stream')
+}
+
+const goToChat = () => {
+    router.push('/chat')
+}
+
+const goToTaskParser = () => {
+    router.push('/task-parser')
+}
+
+const goToKnowledge = () => {
+    router.push('/knowledge')
 }
 </script>

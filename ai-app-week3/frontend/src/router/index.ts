@@ -3,6 +3,9 @@ import LoginView from '../views/LoginView.vue'
 import HomeView from '../views/HomeView.vue'
 import UsersView from '../views/UsersView.vue'
 import StreamView from '../views/StreamDemoView.vue'
+import ChatView from '../views/ChatView.vue'
+import TaskParserView from '../views/TaskParserView.vue'
+import KnowledgeView from '../views/KnowledgeIngestView.vue'
 import { getToken } from '../utils/storage'
 
 const router = createRouter({
@@ -32,7 +35,23 @@ const router = createRouter({
       name: 'stream',
       component: StreamView,
     },
+    {
+      path: '/chat',
+      name: 'chat',
+      component: ChatView,
+    },
+    {
+      path: '/task-parser',
+      name: 'taskParser',
+      component: TaskParserView,
+    },
+    {
+      path: '/knowledge',
+      name: 'knowledge',
+      component: KnowledgeView,
+    }
   ],
+  
 })
 
 router.beforeEach((to, from, next) => {

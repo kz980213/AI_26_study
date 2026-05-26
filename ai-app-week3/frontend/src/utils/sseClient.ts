@@ -4,6 +4,12 @@ export interface ChatStreamPayload {
   content?: string
   index?: number
   conversation_id?: string
+
+  // Day05 新增
+  request_id?: string
+  error_code?: string
+  status_code?: number
+  elapsed_ms?: number
 }
 
 export interface CreateChatStreamOptions {

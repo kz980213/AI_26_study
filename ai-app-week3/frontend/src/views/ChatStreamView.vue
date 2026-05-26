@@ -1,114 +1,138 @@
 <template>
-  <div class="chat-page">
-    <div class="header">
-      <h2>Week4 Day04：真实 DeepSeek SSE 流式聊天</h2>
-      <p>目标：前端通过 EventSource 连接 FastAPI，后端转发 DeepSeek 的真实流式输出。</p>
-    </div>
+  <div class="chat-layout">
+    <aside class="conversation-panel">
+      <div class="conversation-header">
+        <div class="conversation-title">最近会话</div>
 
-    <div class="chat-card" ref="chatCardRef">
-      <div v-if="messages.length === 0" class="empty">
-        还没有消息。输入一句话，开始测试封装后的 SSE 聊天流。
+        <button class="small-btn" :disabled="isStreaming" @click="startNewConversation">新会话</button>
       </div>
 
-      <div
-        v-for="message in messages"
-        :key="message.id"
-        class="message-row"
-        :class="message.role"
-      >
-        <div class="avatar">
-          {{ message.role === 'user' ? '我' : 'AI' }}
-        </div>
+      <div v-if="loadingConversations" class="conversation-empty">加载中...</div>
 
-        <div class="bubble">
-          <div class="role-name">
-            {{ message.role === 'user' ? '用户' : '助手' }}
+      <div v-else-if="conversations.length === 0" class="conversation-empty">暂无会话</div>
 
-            <span v-if="message.status === 'streaming'" class="streaming-tag">
-              输出中
-            </span>
-
-            <span v-if="message.status === 'error'" class="error-tag">
-              异常
-            </span>
-          </div>
-
-          <div class="content">
-            {{ message.content }}
-            <span
-              v-if="message.role === 'assistant' && message.status === 'streaming'"
-              class="cursor"
-            >
-              |
-            </span>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="input-card">
-      <textarea
-        v-model="inputText"
-        class="textarea"
-        placeholder="例如：请解释什么是 SSE"
-        :disabled="isStreaming"
-        @keydown.enter.exact.prevent="sendMessage"
-      />
-
-      <div class="button-row">
+      <div v-else class="conversation-list">
         <button
-          class="btn primary"
-          :disabled="!inputText.trim() || isStreaming"
-          @click="sendMessage"
-        >
-          发送
-        </button>
-
-        <button
-          class="btn"
-          :disabled="!isStreaming"
-          @click="stopStream"
-        >
-          停止输出
-        </button>
-
-        <button
-          class="btn"
+          v-for="item in conversations"
+          :key="item.id"
+          class="conversation-item"
+          :class="{ active: item.id === conversationId }"
           :disabled="isStreaming"
-          @click="clearMessages"
+          @click="switchConversation(item.id)"
         >
-          清空
+          <div class="conversation-name">{{ item.title || '新会话' }}</div>
+
+          <div class="conversation-time">{{ item.updated_at || item.created_at || '' }}</div>
         </button>
       </div>
-
-      <div class="tips">
-        当前状态：{{ statusText }}
-      </div>
-    </div>
-
-    <div class="log-card">
-      <div class="log-title">事件日志</div>
-
-      <div v-if="logs.length === 0" class="log-empty">
-        暂无日志
+    </aside>
+    <div class="chat-page">
+      <div class="header">
+        <h2>Week4 Day04：真实 DeepSeek SSE 流式聊天</h2>
+        <p>目标：前端通过 EventSource 连接 FastAPI，后端转发 DeepSeek 的真实流式输出。</p>
       </div>
 
-      <ul v-else class="logs">
-        <li v-for="(log, index) in logs" :key="index">
-          {{ log }}
-        </li>
-      </ul>
+      <div class="chat-card" ref="chatCardRef">
+        <div v-if="messages.length === 0" class="empty">还没有消息。输入一句话，开始测试封装后的 SSE 聊天流。</div>
+
+        <div
+          v-for="message in messages"
+          :key="message.id"
+          class="message-row"
+          :class="message.role"
+        >
+          <div class="avatar">{{ message.role === 'user' ? '我' : 'AI' }}</div>
+
+          <div class="bubble">
+            <div class="role-name">
+              {{ message.role === 'user' ? '用户' : '助手' }}
+              <span
+                v-if="message.status === 'streaming'"
+                class="streaming-tag"
+              >输出中</span>
+
+              <span v-if="message.status === 'error'" class="error-tag">异常</span>
+            </div>
+
+            <div class="content">
+              {{ message.content }}
+              <span
+                v-if="message.role === 'assistant' && message.status === 'streaming'"
+                class="cursor"
+              >|</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="input-card">
+        <textarea
+          v-model="inputText"
+          class="textarea"
+          placeholder="例如：请解释什么是 SSE"
+          :disabled="isStreaming"
+          @keydown.enter.exact.prevent="() => sendMessage()"
+        />
+
+        <div class="button-row">
+          <button
+            class="btn primary"
+            :disabled="!inputText.trim() || isStreaming"
+            @click="sendMessage"
+          >发送</button>
+
+          <button class="btn" :disabled="!isStreaming" @click="stopStream">停止输出</button>
+
+          <button class="btn" :disabled="isStreaming" @click="startNewConversation">新会话</button>
+
+          <button
+            class="btn"
+            :disabled="!conversationId || isStreaming"
+            @click="loadConversationMessages()"
+          >重新加载历史</button>
+        </div>
+
+        <div class="tips">当前状态：{{ statusText }}</div>
+        <div v-if="currentRequestId" class="request-id">request_id：{{ currentRequestId }}</div>
+
+        <div v-if="errorText" class="error-box">
+          <div class="error-title">本次请求失败</div>
+          <pre>{{ errorText }}</pre>
+
+          <button
+            class="btn retry"
+            :disabled="isStreaming || !lastUserMessage"
+            @click="retryLastMessage"
+          >重试上一次问题</button>
+        </div>
+      </div>
+
+      <div class="log-card">
+        <div class="log-title">事件日志</div>
+
+        <div v-if="logs.length === 0" class="log-empty">暂无日志</div>
+
+        <ul v-else class="logs">
+          <li v-for="(log, index) in logs" :key="index">{{ log }}</li>
+        </ul>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, ref } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue'
 import {
   createChatStream,
   type ChatStreamController,
   type ChatStreamPayload,
 } from '@/utils/sseClient'
+import { 
+  fetchConversations,
+  fetchConversationMessages,
+  saveChatMessage,
+  type ChatConversation, 
+} from '../api/chatSse'
 
 type MessageRole = 'user' | 'assistant'
 type MessageStatus = 'done' | 'streaming' | 'error'
@@ -126,6 +150,14 @@ const logs = ref<string[]>([])
 const isStreaming = ref(false)
 const conversationId = ref<string>('')
 const chatCardRef = ref<HTMLElement | null>(null)
+const lastUserMessage = ref('')
+const errorText = ref('')
+const currentRequestId = ref('')
+
+const CHAT_CONVERSATION_ID_KEY = 'week4_chat_conversation_id'
+
+const conversations = ref<ChatConversation[]>([])
+const loadingConversations = ref(false)
 
 let streamController: ChatStreamController | null = null
 let currentAssistantMessageId = ''
@@ -212,14 +244,18 @@ function markAssistantError(message: string) {
   scrollToBottom()
 }
 
-function sendMessage() {
-  const text = inputText.value.trim()
+function sendMessage(messageOverride?: string) {
+  const text = (messageOverride ?? inputText.value).trim()
 
   if (!text || isStreaming.value) {
     return
   }
 
   closeStream()
+
+  lastUserMessage.value = text
+  errorText.value = ''
+  currentRequestId.value = ''
 
   const userMessage: ChatMessage = {
     id: createMessageId(),
@@ -243,7 +279,7 @@ function sendMessage() {
 
   scrollToBottom()
 
-  addLog('开始创建 SSE 连接')
+  addLog('开始创建 DeepSeek SSE 连接')
 
   streamController = createChatStream({
     message: text,
@@ -256,47 +292,97 @@ function sendMessage() {
     },
 
     onStart: (data: ChatStreamPayload) => {
-      if (data.conversation_id) {
-        conversationId.value = data.conversation_id
-      }
-
-      addLog(`后端开始输出，会话ID：${data.conversation_id || '-'}`)
+        if (data.conversation_id) {
+          conversationId.value = data.conversation_id
+          localStorage.setItem(CHAT_CONVERSATION_ID_KEY, data.conversation_id)
+        }
+      
+        if (data.request_id) {
+          currentRequestId.value = data.request_id
+        }
+      
+        addLog(
+          `后端开始输出，conversation_id=${data.conversation_id || '-'}，request_id=${data.request_id || '-'}`,
+        )
     },
-
+    
     onChunk: (data: ChatStreamPayload) => {
       appendAssistantContent(data.content || '')
       addLog(`收到 chunk ${data.index}: ${data.content || ''}`)
     },
 
-    onDone: () => {
+    onDone: (data: ChatStreamPayload) => {
       finishAssistantMessage()
-      addLog('流式输出完成')
+      addLog(`流式输出完成，耗时：${data.elapsed_ms || '-'} ms`)
+      void loadConversations()
     },
 
     onServerError: (data: ChatStreamPayload) => {
-      markAssistantError(data.message || '服务端返回异常')
-      addLog(`服务端异常：${data.message || '-'}`)
+      const message = [
+        `服务端错误：${data.error_code || 'UNKNOWN_ERROR'}`,
+        data.status_code ? `HTTP 状态码：${data.status_code}` : '',
+        data.request_id ? `request_id：${data.request_id}` : '',
+        data.message ? `错误信息：${data.message}` : '',
+      ]
+        .filter(Boolean)
+        .join('\n')
+
+      errorText.value = message
+      currentRequestId.value = data.request_id || ''
+
+      markAssistantError(message)
+      addLog(`服务端异常：${data.error_code || '-'} request_id=${data.request_id || '-'}`)
     },
 
     onConnectionError: () => {
-      markAssistantError('SSE 连接异常或超时，请检查后端服务。')
+      const message = 'SSE 连接异常或超时，请检查后端服务、网络或 CORS。'
+
+      errorText.value = message
+      markAssistantError(message)
       addLog('SSE 连接异常或超时')
     },
   })
 }
 
-function stopStream() {
+function retryLastMessage() {
+  if (!lastUserMessage.value || isStreaming.value) {
+    return
+  }
+
+  addLog(`重试上一次问题：${lastUserMessage.value}`)
+  sendMessage(lastUserMessage.value)
+}
+
+async function stopStream() {
   const assistant = findAssistantMessage()
+  let contentToSave = ''
 
   if (assistant && assistant.status === 'streaming') {
     assistant.status = 'done'
     assistant.content += '\n\n[你已手动停止输出]'
+    contentToSave = assistant.content
   }
 
   isStreaming.value = false
   addLog('已手动停止输出')
 
   closeStream()
+
+  if (conversationId.value && contentToSave.trim()) {
+    try {
+      await saveChatMessage({
+        conversation_id: conversationId.value,
+        role: 'assistant',
+        content: contentToSave,
+        request_id: currentRequestId.value || undefined,
+      })
+
+      addLog('已保存停止时的部分 assistant 回复')
+      await loadConversations()
+    } catch (error) {
+      addLog(`保存停止时的部分回复失败：${String(error)}`)
+    }
+  }
 }
 
 function clearMessages() {
@@ -306,9 +392,94 @@ function clearMessages() {
   isStreaming.value = false
   conversationId.value = ''
   currentAssistantMessageId = ''
+  currentRequestId.value = ''
+  errorText.value = ''
+
+  localStorage.removeItem(CHAT_CONVERSATION_ID_KEY)
 
   closeStream()
 }
+
+async function loadConversationMessages(conversationIdOverride?: string) {
+  const targetConversationId = conversationIdOverride || conversationId.value
+
+  if (!targetConversationId) {
+    return
+  }
+
+  try {
+    addLog(`开始加载历史消息：${targetConversationId}`)
+
+    const historyMessages = await fetchConversationMessages(targetConversationId)
+
+    messages.value = historyMessages.map((item) => ({
+      id: item.id,
+      role: item.role,
+      content: item.content,
+      status: 'done',
+    }))
+
+    conversationId.value = targetConversationId
+    localStorage.setItem(CHAT_CONVERSATION_ID_KEY, targetConversationId)
+
+    addLog(`历史消息加载完成，共 ${historyMessages.length} 条`)
+    scrollToBottom()
+  } catch (error) {
+    addLog(`加载历史消息失败：${String(error)}`)
+  }
+}
+
+async function loadConversations() {
+  try {
+    loadingConversations.value = true
+    conversations.value = await fetchConversations(20)
+  } catch (error) {
+    addLog(`加载会话列表失败：${String(error)}`)
+  } finally {
+    loadingConversations.value = false
+  }
+}
+
+async function switchConversation(targetConversationId: string) {
+  if (isStreaming.value) {
+    addLog('当前正在输出中，不能切换会话')
+    return
+  }
+
+  conversationId.value = targetConversationId
+  localStorage.setItem(CHAT_CONVERSATION_ID_KEY, targetConversationId)
+
+  await loadConversationMessages(targetConversationId)
+}
+
+function startNewConversation() {
+  if (isStreaming.value) {
+    return
+  }
+
+  messages.value = []
+  logs.value = []
+  inputText.value = ''
+  conversationId.value = ''
+  currentAssistantMessageId = ''
+  currentRequestId.value = ''
+  errorText.value = ''
+
+  localStorage.removeItem(CHAT_CONVERSATION_ID_KEY)
+
+  addLog('已创建新会话，本地状态已清空')
+}
+
+onMounted(async () => {
+  await loadConversations()
+
+  const savedConversationId = localStorage.getItem(CHAT_CONVERSATION_ID_KEY)
+
+  if (savedConversationId) {
+    conversationId.value = savedConversationId
+    await loadConversationMessages(savedConversationId)
+  }
+})
 
 onBeforeUnmount(() => {
   closeStream()
@@ -316,11 +487,112 @@ onBeforeUnmount(() => {
 </script>
 
 <style scoped>
+.chat-layout {
+  display: flex;
+  min-height: 100vh;
+  background: #f3f4f6;
+}
+
+.conversation-panel {
+  width: 260px;
+  flex-shrink: 0;
+  padding: 16px;
+  border-right: 1px solid #e5e7eb;
+  background: #ffffff;
+}
+
+.conversation-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.conversation-title {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.small-btn {
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #f9fafb;
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.small-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.conversation-empty {
+  padding: 24px 0;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.conversation-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.conversation-item {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.conversation-item.active {
+  border-color: #2563eb;
+  background: #eff6ff;
+}
+
+.conversation-item:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.conversation-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.conversation-time {
+  margin-top: 4px;
+  color: #9ca3af;
+  font-size: 11px;
+}
+
 .chat-page {
-  max-width: 960px;
-  margin: 0 auto;
+  flex: 1;
+  max-width: none;
+  margin: 0;
   padding: 24px;
   font-family: Arial, "Microsoft YaHei", sans-serif;
+}
+
+@media (max-width: 768px) {
+  .chat-layout {
+    flex-direction: column;
+  }
+
+  .conversation-panel {
+    width: auto;
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+  }
 }
 
 .header {
@@ -511,5 +783,38 @@ onBeforeUnmount(() => {
   100% {
     opacity: 1;
   }
+}
+.request-id {
+  margin-top: 8px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.error-box {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.error-title {
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.error-box pre {
+  margin: 0 0 10px;
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.btn.retry {
+  color: #ffffff;
+  border-color: #dc2626;
+  background: #dc2626;
 }
 </style>

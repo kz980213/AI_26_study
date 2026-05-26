@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field
+from typing import Literal, Optional
 
 class RegisterRequest(BaseModel):
     username: str = Field(...,min_length=3, max_length=50, description="用户名", examples=["kk"])
@@ -21,3 +22,17 @@ class UserInfo(BaseModel):
 
 class ChatResponse(BaseModel):
     answer: str
+
+class ChatStreamEvent(BaseModel):
+    """
+    聊天流式输出事件。
+
+    这是后端推给前端的统一事件结构。
+    后面接真实大模型时，也尽量继续保持这个结构。
+    """
+
+    type: Literal["start", "chunk", "done", "error", "heartbeat"]
+    message: Optional[str] = None
+    content: Optional[str] = None
+    index: Optional[int] = None
+    conversation_id: Optional[str] = None

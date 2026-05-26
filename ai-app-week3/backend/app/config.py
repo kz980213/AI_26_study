@@ -19,6 +19,7 @@ class Settings:
         "https://api.deepseek.com/chat/completions"
     )
     DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
+    DEEPSEEK_TIMEOUT_SECONDS: int = 60
 
 
 settings = Settings()

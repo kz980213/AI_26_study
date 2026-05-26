@@ -7,6 +7,7 @@ import ChatView from '../views/ChatView.vue'
 import TaskParserView from '../views/TaskParserView.vue'
 import KnowledgeView from '../views/KnowledgeIngestView.vue'
 import AiChatView from '../views/AiChatView.vue'
+import ChatStreamView from '../views/ChatStreamView.vue'
 import { getToken } from '../utils/storage'
 
 const router = createRouter({
@@ -55,7 +56,12 @@ const router = createRouter({
       path: '/ai-chat',
       name: 'aiChat',
       component: AiChatView,
-    }
+    },
+    {
+      path: '/chatStreamView',
+      name: 'chatStreamView',
+      component: ChatStreamView,
+    },
   ],
   
 })

@@ -18,3 +18,6 @@ class TokenResponse(BaseModel):
 
 class UserInfo(BaseModel):
     username: str = Field(..., description="当前登录用户名")
+
+class ChatResponse(BaseModel):
+    answer: str

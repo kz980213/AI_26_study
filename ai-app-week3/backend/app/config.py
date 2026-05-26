@@ -12,6 +12,13 @@ class Settings:
         "CORS_ALLOW_ORIGINS",
         "http://localhost:5173,http://127.0.0.1:5173,http://localhost:5180,http://127.0.0.1:5180",
     ).split(",")
+    
+    DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY", "")
+    DEEPSEEK_API_URL = os.getenv(
+        "DEEPSEEK_API_URL",
+        "https://api.deepseek.com/chat/completions"
+    )
+    DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
 
 
 settings = Settings()

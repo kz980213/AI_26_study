@@ -6,6 +6,7 @@
         <button @click="goToChat">聊天页面</button>
         <button @click="goToTaskParser">进入 AI 任务解析页</button>
         <button @click="goToKnowledge">进入知识库管理页</button>
+        <button @click="goToAiChat">进入 AI 聊天页</button>
         <button @click="logout">退出登录</button>
     </div>
 </template>
@@ -37,5 +38,9 @@ const goToTaskParser = () => {
 
 const goToKnowledge = () => {
     router.push('/knowledge')
+}
+
+const goToAiChat = () => {
+    router.push('/ai-chat')
 }
 </script>

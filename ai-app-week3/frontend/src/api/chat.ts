@@ -1,5 +1,6 @@
 import { API_BASE_URL } from './http'
 import { getToken } from '../utils/storage'
+import http from './http'
 
 type StreamHandlers = {
   onStart?: (payload: any) => void
@@ -91,4 +92,10 @@ export async function streamChatApi(
       }
     }
   }
+}
+
+export function sendChatMessage(message: string) {
+  return http.post('/ai/stream', {
+      message,
+  })
 }

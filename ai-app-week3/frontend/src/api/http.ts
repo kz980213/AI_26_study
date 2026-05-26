@@ -5,7 +5,7 @@ export const API_BASE_URL = 'http://127.0.0.1:8010'
 
 const http = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 5000,
+  timeout: 1500000,
 })
 
 http.interceptors.request.use(

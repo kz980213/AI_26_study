@@ -121,17 +121,23 @@ def get_recent_chat_messages(
 def get_conversation_messages(
     db: Session,
     conversation_id: str,
+    limit: int = 100,
 ) -> list[ChatMessage]:
     """
     获取一个会话的全部消息。
     """
 
-    return (
+    rows = (
         db.query(ChatMessage)
         .filter(ChatMessage.conversation_id == conversation_id)
-        .order_by(ChatMessage.created_at.asc())
+        .order_by(ChatMessage.created_at.desc())
+        .limit(limit)
         .all()
     )
+
+    rows.reverse()
+
+    return rows
 
 
 def list_recent_conversations(

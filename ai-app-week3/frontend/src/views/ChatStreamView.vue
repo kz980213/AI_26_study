@@ -157,6 +157,30 @@
         <div v-if="currentRequestId" class="request-id">request_id：{{ currentRequestId }}</div>
         <div v-if="llmUsageInfo.model || llmUsageInfo.total_tokens_est" class="usage-box">
           <div class="usage-title">本次模型调用</div>
+          <div v-if="contextInfo.context_messages_count !== undefined" class="context-box">
+            <div class="context-title">本次上下文控制</div>
+
+            <div class="context-grid">
+              <div>
+                携带历史消息：
+                <strong>{{ contextInfo.context_messages_count ?? 0 }}</strong>
+                条
+              </div>
+
+              <div>
+                上下文估算 Token：
+                <strong>{{ contextInfo.context_tokens_est ?? 0 }}</strong>
+              </div>
+
+              <div>
+                被裁剪历史消息：
+                <strong>{{ contextInfo.truncated_messages_count ?? 0 }}</strong>
+                条
+              </div>
+            </div>
+
+            <div class="context-tip">为了控制成本和速度，系统不会无限携带全部历史消息，只会选择最近且不超过 token 限制的上下文。</div>
+          </div>
 
           <div class="usage-grid">
             <div>Provider：{{ llmUsageInfo.provider || '-' }}</div>
@@ -249,6 +273,12 @@ const llmUsageInfo = ref<{
 
 const usageSummary = ref<LLMUsageSummary | null>(null)
 const loadingUsageSummary = ref(false)
+
+const contextInfo = ref<{
+  context_messages_count?: number
+  context_tokens_est?: number
+  truncated_messages_count?: number
+}>({})
 
 let streamController: ChatStreamController | null = null
 let currentAssistantMessageId = ''
@@ -396,6 +426,13 @@ function sendMessage(messageOverride?: string) {
           model: data.model,
           prompt_tokens_est: data.prompt_tokens_est,
         }
+
+        contextInfo.value = {
+          context_messages_count: data.context_messages_count,
+          context_tokens_est: data.context_tokens_est,
+          truncated_messages_count: data.truncated_messages_count,
+        }
+
         addLog(
           `后端开始输出，conversation_id=${data.conversation_id || '-'}，request_id=${data.request_id || '-'}`,
         )
@@ -414,6 +451,12 @@ function sendMessage(messageOverride?: string) {
         completion_tokens_est: data.completion_tokens_est,
         total_tokens_est: data.total_tokens_est,
         elapsed_ms: data.elapsed_ms,
+      }
+
+      contextInfo.value = {
+        context_messages_count: data.context_messages_count,
+        context_tokens_est: data.context_tokens_est,
+        truncated_messages_count: data.truncated_messages_count,
       }
     
       finishAssistantMessage()
@@ -513,6 +556,7 @@ function clearMessages() {
   currentRequestId.value = ''
   errorText.value = ''
   llmUsageInfo.value = {}
+  contextInfo.value = {}
   localStorage.removeItem(CHAT_CONVERSATION_ID_KEY)
 
   closeStream()
@@ -572,6 +616,7 @@ async function switchConversation(targetConversationId: string) {
 
 function startNewConversation() {
   llmUsageInfo.value = {}
+  contextInfo.value = {}
   if (isStreaming.value) {
     return
   }
@@ -1043,6 +1088,40 @@ onBeforeUnmount(() => {
 @media (max-width: 900px) {
   .summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.context-box {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  background: #f0fdf4;
+  color: #14532d;
+}
+
+.context-title {
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.context-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.context-tip {
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .context-grid {
+    grid-template-columns: 1fr;
   }
 }
 </style>

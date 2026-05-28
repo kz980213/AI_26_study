@@ -19,6 +19,7 @@ from app.services.llm_usage_service import (
     build_prompt_text_for_estimate,
     estimate_token_count,
 )
+from app.services.context_service import build_limited_history_context
 
 
 def pydantic_to_dict(model: Any) -> dict[str, Any]:
@@ -149,11 +150,19 @@ async def deepseek_chat_stream_events(
             request_id=current_request_id,
         )
 
-        history_messages = get_recent_chat_messages(
+        raw_history_messages = get_recent_chat_messages(
             db=db,
             conversation_id=current_conversation_id,
-            limit=8,
+            limit=settings.LLM_MAX_HISTORY_MESSAGES + 20,
         )
+    
+        context_result = build_limited_history_context(
+            history_messages=raw_history_messages,
+            max_messages=settings.LLM_MAX_HISTORY_MESSAGES,
+            max_tokens_est=settings.LLM_MAX_CONTEXT_TOKENS_EST,
+        )
+    
+        history_messages = context_result.messages
 
         prompt_text_for_estimate = build_prompt_text_for_estimate(
             user_message=user_message,
@@ -170,6 +179,9 @@ async def deepseek_chat_stream_events(
             provider=provider,
             model=model,
             prompt_tokens_est=prompt_tokens_est,
+            context_messages_count=context_result.selected_messages_count,
+            context_tokens_est=context_result.context_tokens_est,
+            truncated_messages_count=context_result.truncated_messages_count,
         )
 
         index = 0
@@ -232,6 +244,9 @@ async def deepseek_chat_stream_events(
             prompt_tokens_est=prompt_tokens_est,
             completion_tokens_est=completion_tokens_est,
             total_tokens_est=total_tokens_est,
+            context_messages_count=context_result.selected_messages_count,
+            context_tokens_est=context_result.context_tokens_est,
+            truncated_messages_count=context_result.truncated_messages_count,
         )
 
     except LLMStreamError as exc:

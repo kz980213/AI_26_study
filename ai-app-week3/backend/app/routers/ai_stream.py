@@ -247,6 +247,7 @@ async def get_chat_conversations(
 @router.get("/chat/conversations/{conversation_id}/messages")
 async def get_chat_conversation_messages(
     conversation_id: str,
+    limit: int = Query(100, ge=1, le=500),
     db: Session = Depends(get_db),
 ):
     """
@@ -256,6 +257,7 @@ async def get_chat_conversation_messages(
     messages = get_conversation_messages(
         db=db,
         conversation_id=conversation_id,
+        limit=limit,
     )
 
     return [

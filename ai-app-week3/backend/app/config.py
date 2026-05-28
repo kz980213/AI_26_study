@@ -22,6 +22,8 @@ class Settings:
     DEEPSEEK_TIMEOUT_SECONDS: int = 60
     DEEPSEEK_INPUT_PRICE_CNY_PER_1M_TOKENS: float = 0
     DEEPSEEK_OUTPUT_PRICE_CNY_PER_1M_TOKENS: float = 0
+    LLM_MAX_HISTORY_MESSAGES: int = 8
+    LLM_MAX_CONTEXT_TOKENS_EST: int = 1200
 
 
 settings = Settings()

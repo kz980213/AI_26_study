@@ -49,6 +49,11 @@ class ChatStreamEvent(BaseModel):
     completion_tokens_est: Optional[int] = None
     total_tokens_est: Optional[int] = None
 
+    # Week5 Day03：上下文信息
+    context_messages_count: Optional[int] = None
+    context_tokens_est: Optional[int] = None
+    truncated_messages_count: Optional[int] = None
+
 class SaveChatMessageRequest(BaseModel):
     """
     手动保存聊天消息。

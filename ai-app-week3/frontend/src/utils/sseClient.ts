@@ -17,6 +17,11 @@ export interface ChatStreamPayload {
   prompt_tokens_est?: number
   completion_tokens_est?: number
   total_tokens_est?: number
+
+  // Week5 Day03：上下文信息
+  context_messages_count?: number
+  context_tokens_est?: number
+  truncated_messages_count?: number
 }
 
 export interface CreateChatStreamOptions {

@@ -23,6 +23,8 @@ from app.services.chat_history_service import (
 
 from app.models import LLMCallLog
 
+from app.services.llm_cost_service import estimate_deepseek_cost_from_log
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/ai", tags=["AI Stream"])
@@ -346,3 +348,96 @@ async def get_llm_call_logs(
         }
         for item in rows
     ]
+
+@router.get("/llm/usage-summary")
+async def get_llm_usage_summary(
+    limit: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """
+    Week5 Day02：查询最近 N 次 LLM 调用统计。
+
+    用于前端展示：
+    - 调用次数
+    - 成功 / 失败次数
+    - token 总量
+    - 平均耗时
+    - 成本估算
+    """
+
+    rows = (
+        db.query(LLMCallLog)
+        .order_by(LLMCallLog.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+    total_calls = len(rows)
+    success_calls = len([item for item in rows if item.status == "success"])
+    error_calls = len([item for item in rows if item.status == "error"])
+
+    total_prompt_tokens = sum(item.prompt_tokens_est or 0 for item in rows)
+    total_completion_tokens = sum(item.completion_tokens_est or 0 for item in rows)
+    total_tokens = sum(item.total_tokens_est or 0 for item in rows)
+
+    elapsed_values = [
+        item.elapsed_ms
+        for item in rows
+        if item.elapsed_ms is not None and item.elapsed_ms >= 0
+    ]
+
+    avg_elapsed_ms = (
+        round(sum(elapsed_values) / len(elapsed_values), 2)
+        if elapsed_values
+        else 0
+    )
+
+    total_input_cost_cny = 0.0
+    total_output_cost_cny = 0.0
+    total_cost_cny = 0.0
+
+    recent_logs = []
+
+    for item in rows:
+        cost = estimate_deepseek_cost_from_log(item)
+
+        total_input_cost_cny += cost["input_cost_cny"]
+        total_output_cost_cny += cost["output_cost_cny"]
+        total_cost_cny += cost["total_cost_cny"]
+
+        recent_logs.append(
+            {
+                "id": item.id,
+                "request_id": item.request_id,
+                "conversation_id": item.conversation_id,
+                "provider": item.provider,
+                "model": item.model,
+                "status": item.status,
+                "error_code": item.error_code,
+                "status_code": item.status_code,
+                "prompt_tokens_est": item.prompt_tokens_est,
+                "completion_tokens_est": item.completion_tokens_est,
+                "total_tokens_est": item.total_tokens_est,
+                "elapsed_ms": item.elapsed_ms,
+                "estimated_cost_cny": cost["total_cost_cny"],
+                "created_at": item.created_at.isoformat() if item.created_at else None,
+            }
+        )
+
+    success_rate = round(success_calls / total_calls * 100, 2) if total_calls else 0
+
+    return {
+        "limit": limit,
+        "total_calls": total_calls,
+        "success_calls": success_calls,
+        "error_calls": error_calls,
+        "success_rate": success_rate,
+        "total_prompt_tokens_est": total_prompt_tokens,
+        "total_completion_tokens_est": total_completion_tokens,
+        "total_tokens_est": total_tokens,
+        "avg_elapsed_ms": avg_elapsed_ms,
+        "estimated_input_cost_cny": round(total_input_cost_cny, 6),
+        "estimated_output_cost_cny": round(total_output_cost_cny, 6),
+        "estimated_total_cost_cny": round(total_cost_cny, 6),
+        "recent_logs": recent_logs,
+    }

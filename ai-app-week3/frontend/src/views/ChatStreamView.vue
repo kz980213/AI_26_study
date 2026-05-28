@@ -32,6 +32,67 @@
         <p>目标：前端通过 EventSource 连接 FastAPI，后端转发 DeepSeek 的真实流式输出。</p>
       </div>
 
+      <div class="summary-card">
+        <div class="summary-header">
+          <div>
+            <div class="summary-title">最近 20 次模型调用统计</div>
+            <div class="summary-subtitle">用于观察 token、耗时、成功率和估算成本</div>
+          </div>
+
+          <button
+            class="small-btn"
+            :disabled="loadingUsageSummary"
+            @click="loadUsageSummary"
+          >{{ loadingUsageSummary ? '刷新中...' : '刷新统计' }}</button>
+        </div>
+
+        <div v-if="!usageSummary" class="summary-empty">暂无统计数据，先发送一次真实模型请求。</div>
+
+        <div v-else class="summary-grid">
+          <div class="summary-item">
+            <span class="summary-label">调用次数</span>
+            <strong>{{ usageSummary.total_calls }}</strong>
+          </div>
+
+          <div class="summary-item">
+            <span class="summary-label">成功率</span>
+            <strong>{{ usageSummary.success_rate }}%</strong>
+          </div>
+
+          <div class="summary-item">
+            <span class="summary-label">失败次数</span>
+            <strong>{{ usageSummary.error_calls }}</strong>
+          </div>
+
+          <div class="summary-item">
+            <span class="summary-label">平均耗时</span>
+            <strong>{{ usageSummary.avg_elapsed_ms }} ms</strong>
+          </div>
+
+          <div class="summary-item">
+            <span class="summary-label">输入 Token</span>
+            <strong>{{ usageSummary.total_prompt_tokens_est }}</strong>
+          </div>
+
+          <div class="summary-item">
+            <span class="summary-label">输出 Token</span>
+            <strong>{{ usageSummary.total_completion_tokens_est }}</strong>
+          </div>
+
+          <div class="summary-item">
+            <span class="summary-label">总 Token</span>
+            <strong>{{ usageSummary.total_tokens_est }}</strong>
+          </div>
+
+          <div class="summary-item">
+            <span class="summary-label">估算成本</span>
+            <strong>¥{{ usageSummary.estimated_total_cost_cny }}</strong>
+          </div>
+        </div>
+
+        <div v-if="usageSummary" class="summary-tip">当前成本基于 .env 中配置的单价估算，不代表模型厂商最终账单。</div>
+      </div>
+
       <div class="chat-card" ref="chatCardRef">
         <div v-if="messages.length === 0" class="empty">还没有消息。输入一句话，开始测试封装后的 SSE 聊天流。</div>
 
@@ -147,6 +208,10 @@ import {
   saveChatMessage,
   type ChatConversation, 
 } from '../api/chatSse'
+import {
+  fetchLLMUsageSummary,
+  type LLMUsageSummary,
+} from '../api/llmUsage'
 
 type MessageRole = 'user' | 'assistant'
 type MessageStatus = 'done' | 'streaming' | 'error'
@@ -181,6 +246,9 @@ const llmUsageInfo = ref<{
   total_tokens_est?: number
   elapsed_ms?: number
 }>({})
+
+const usageSummary = ref<LLMUsageSummary | null>(null)
+const loadingUsageSummary = ref(false)
 
 let streamController: ChatStreamController | null = null
 let currentAssistantMessageId = ''
@@ -355,6 +423,7 @@ function sendMessage(messageOverride?: string) {
       )
     
       void loadConversations()
+      void loadUsageSummary()
     },
 
     onServerError: (data: ChatStreamPayload) => {
@@ -380,6 +449,7 @@ function sendMessage(messageOverride?: string) {
         elapsed_ms: data.elapsed_ms,
       }
       addLog(`服务端异常：${data.error_code || '-'} request_id=${data.request_id || '-'}`)
+      void loadUsageSummary()
     },
 
     onConnectionError: () => {
@@ -519,8 +589,21 @@ function startNewConversation() {
   addLog('已创建新会话，本地状态已清空')
 }
 
+async function loadUsageSummary() {
+  try {
+    loadingUsageSummary.value = true
+    usageSummary.value = await fetchLLMUsageSummary(20)
+    addLog('LLM 使用统计已刷新')
+  } catch (error) {
+    addLog(`加载 LLM 使用统计失败：${String(error)}`)
+  } finally {
+    loadingUsageSummary.value = false
+  }
+}
+
 onMounted(async () => {
   await loadConversations()
+  await loadUsageSummary()
 
   const savedConversationId = localStorage.getItem(CHAT_CONVERSATION_ID_KEY)
 
@@ -892,5 +975,74 @@ onBeforeUnmount(() => {
   margin-top: 8px;
   color: #64748b;
   font-size: 12px;
+}
+.summary-card {
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  background: #ffffff;
+}
+
+.summary-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.summary-title {
+  font-weight: 700;
+  color: #111827;
+}
+
+.summary-subtitle {
+  margin-top: 4px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.summary-empty {
+  padding: 16px 0;
+  color: #9ca3af;
+  font-size: 13px;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.summary-item {
+  padding: 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  background: #f9fafb;
+}
+
+.summary-label {
+  display: block;
+  margin-bottom: 4px;
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.summary-item strong {
+  color: #111827;
+  font-size: 16px;
+}
+
+.summary-tip {
+  margin-top: 10px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 </style>

@@ -20,6 +20,8 @@ class Settings:
     )
     DEEPSEEK_MODEL = os.getenv("DEEPSEEK_MODEL", "deepseek-chat")
     DEEPSEEK_TIMEOUT_SECONDS: int = 60
+    DEEPSEEK_INPUT_PRICE_CNY_PER_1M_TOKENS: float = 0
+    DEEPSEEK_OUTPUT_PRICE_CNY_PER_1M_TOKENS: float = 0
 
 
 settings = Settings()

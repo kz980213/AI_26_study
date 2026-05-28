@@ -42,6 +42,13 @@ class ChatStreamEvent(BaseModel):
     status_code: Optional[int] = None
     elapsed_ms: Optional[int] = None
 
+    ##Week5 Day01 新增：模型调用信息
+    provider: Optional[str] = None
+    model: Optional[str] = None
+    prompt_tokens_est: Optional[int] = None
+    completion_tokens_est: Optional[int] = None
+    total_tokens_est: Optional[int] = None
+
 class SaveChatMessageRequest(BaseModel):
     """
     手动保存聊天消息。

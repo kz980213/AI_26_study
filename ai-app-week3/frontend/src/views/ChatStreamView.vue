@@ -94,6 +94,20 @@
 
         <div class="tips">当前状态：{{ statusText }}</div>
         <div v-if="currentRequestId" class="request-id">request_id：{{ currentRequestId }}</div>
+        <div v-if="llmUsageInfo.model || llmUsageInfo.total_tokens_est" class="usage-box">
+          <div class="usage-title">本次模型调用</div>
+
+          <div class="usage-grid">
+            <div>Provider：{{ llmUsageInfo.provider || '-' }}</div>
+            <div>Model：{{ llmUsageInfo.model || '-' }}</div>
+            <div>输入估算 Token：{{ llmUsageInfo.prompt_tokens_est ?? '-' }}</div>
+            <div>输出估算 Token：{{ llmUsageInfo.completion_tokens_est ?? '-' }}</div>
+            <div>总估算 Token：{{ llmUsageInfo.total_tokens_est ?? '-' }}</div>
+            <div>耗时：{{ llmUsageInfo.elapsed_ms ?? '-' }} ms</div>
+          </div>
+
+          <div class="usage-tip">当前 token 为粗略估算值，后续会替换为模型厂商返回的精确 usage。</div>
+        </div>
 
         <div v-if="errorText" class="error-box">
           <div class="error-title">本次请求失败</div>
@@ -158,6 +172,15 @@ const CHAT_CONVERSATION_ID_KEY = 'week4_chat_conversation_id'
 
 const conversations = ref<ChatConversation[]>([])
 const loadingConversations = ref(false)
+
+const llmUsageInfo = ref<{
+  provider?: string
+  model?: string
+  prompt_tokens_est?: number
+  completion_tokens_est?: number
+  total_tokens_est?: number
+  elapsed_ms?: number
+}>({})
 
 let streamController: ChatStreamController | null = null
 let currentAssistantMessageId = ''
@@ -300,7 +323,11 @@ function sendMessage(messageOverride?: string) {
         if (data.request_id) {
           currentRequestId.value = data.request_id
         }
-      
+        llmUsageInfo.value = {
+          provider: data.provider,
+          model: data.model,
+          prompt_tokens_est: data.prompt_tokens_est,
+        }
         addLog(
           `后端开始输出，conversation_id=${data.conversation_id || '-'}，request_id=${data.request_id || '-'}`,
         )
@@ -312,8 +339,21 @@ function sendMessage(messageOverride?: string) {
     },
 
     onDone: (data: ChatStreamPayload) => {
+      llmUsageInfo.value = {
+        provider: data.provider,
+        model: data.model,
+        prompt_tokens_est: data.prompt_tokens_est,
+        completion_tokens_est: data.completion_tokens_est,
+        total_tokens_est: data.total_tokens_est,
+        elapsed_ms: data.elapsed_ms,
+      }
+    
       finishAssistantMessage()
-      addLog(`流式输出完成，耗时：${data.elapsed_ms || '-'} ms`)
+    
+      addLog(
+        `流式输出完成，耗时：${data.elapsed_ms || '-'} ms，估算 total_tokens=${data.total_tokens_est || '-'}`,
+      )
+    
       void loadConversations()
     },
 
@@ -331,6 +371,14 @@ function sendMessage(messageOverride?: string) {
       currentRequestId.value = data.request_id || ''
 
       markAssistantError(message)
+      llmUsageInfo.value = {
+        provider: data.provider,
+        model: data.model,
+        prompt_tokens_est: data.prompt_tokens_est,
+        completion_tokens_est: data.completion_tokens_est,
+        total_tokens_est: data.total_tokens_est,
+        elapsed_ms: data.elapsed_ms,
+      }
       addLog(`服务端异常：${data.error_code || '-'} request_id=${data.request_id || '-'}`)
     },
 
@@ -394,7 +442,7 @@ function clearMessages() {
   currentAssistantMessageId = ''
   currentRequestId.value = ''
   errorText.value = ''
-
+  llmUsageInfo.value = {}
   localStorage.removeItem(CHAT_CONVERSATION_ID_KEY)
 
   closeStream()
@@ -453,6 +501,7 @@ async function switchConversation(targetConversationId: string) {
 }
 
 function startNewConversation() {
+  llmUsageInfo.value = {}
   if (isStreaming.value) {
     return
   }
@@ -816,5 +865,32 @@ onBeforeUnmount(() => {
   color: #ffffff;
   border-color: #dc2626;
   background: #dc2626;
+}
+.usage-box {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  background: #eff6ff;
+  color: #1e3a8a;
+}
+
+.usage-title {
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.usage-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.usage-tip {
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 12px;
 }
 </style>

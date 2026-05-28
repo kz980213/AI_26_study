@@ -10,6 +10,13 @@ export interface ChatStreamPayload {
   error_code?: string
   status_code?: number
   elapsed_ms?: number
+
+  // Week5 Day01 新增
+  provider?: string
+  model?: string
+  prompt_tokens_est?: number
+  completion_tokens_est?: number
+  total_tokens_est?: number
 }
 
 export interface CreateChatStreamOptions {

@@ -13,6 +13,12 @@ from app.services.chat_history_service import (
     get_recent_chat_messages,
     save_chat_message,
 )
+from app.config import settings
+from app.services.llm_log_service import save_llm_call_log
+from app.services.llm_usage_service import (
+    build_prompt_text_for_estimate,
+    estimate_token_count,
+)
 
 
 def pydantic_to_dict(model: Any) -> dict[str, Any]:
@@ -108,17 +114,21 @@ async def deepseek_chat_stream_events(
     """
     真实 DeepSeek 聊天流式事件。
 
-    Day06 新增：
-    - 创建 / 复用 conversation
-    - 保存 user 消息
-    - 保存 assistant 完整回复
-    - 使用最近消息作为多轮上下文
+    Week5 Day01 新增：
+    - 估算 prompt token
+    - 估算 completion token
+    - 保存 LLM 调用日志
+    - done 事件返回模型调用信息
     """
 
     current_conversation_id = conversation_id or str(uuid.uuid4())
     current_request_id = request_id or str(uuid.uuid4())
     start_time = time.perf_counter()
+
     assistant_parts: list[str] = []
+
+    provider = "deepseek"
+    model = settings.DEEPSEEK_MODEL
 
     db = SessionLocal()
 
@@ -145,11 +155,21 @@ async def deepseek_chat_stream_events(
             limit=8,
         )
 
+        prompt_text_for_estimate = build_prompt_text_for_estimate(
+            user_message=user_message,
+            history_messages=history_messages,
+        )
+
+        prompt_tokens_est = estimate_token_count(prompt_text_for_estimate)
+
         yield ChatStreamEvent(
             type="start",
             message="deepseek stream started",
             conversation_id=current_conversation_id,
             request_id=current_request_id,
+            provider=provider,
+            model=model,
+            prompt_tokens_est=prompt_tokens_est,
         )
 
         index = 0
@@ -181,7 +201,25 @@ async def deepseek_chat_stream_events(
                 request_id=current_request_id,
             )
 
+        completion_tokens_est = estimate_token_count(assistant_content)
+        total_tokens_est = prompt_tokens_est + completion_tokens_est
+
         elapsed_ms = int((time.perf_counter() - start_time) * 1000)
+
+        save_llm_call_log(
+            db=db,
+            request_id=current_request_id,
+            conversation_id=current_conversation_id,
+            provider=provider,
+            model=model,
+            status="success",
+            prompt_preview=prompt_text_for_estimate,
+            response_preview=assistant_content,
+            prompt_tokens_est=prompt_tokens_est,
+            completion_tokens_est=completion_tokens_est,
+            total_tokens_est=total_tokens_est,
+            elapsed_ms=elapsed_ms,
+        )
 
         yield ChatStreamEvent(
             type="done",
@@ -189,10 +227,35 @@ async def deepseek_chat_stream_events(
             conversation_id=current_conversation_id,
             request_id=current_request_id,
             elapsed_ms=elapsed_ms,
+            provider=provider,
+            model=model,
+            prompt_tokens_est=prompt_tokens_est,
+            completion_tokens_est=completion_tokens_est,
+            total_tokens_est=total_tokens_est,
         )
 
     except LLMStreamError as exc:
         elapsed_ms = int((time.perf_counter() - start_time) * 1000)
+
+        prompt_text_for_estimate = user_message
+        prompt_tokens_est = estimate_token_count(prompt_text_for_estimate)
+
+        save_llm_call_log(
+            db=db,
+            request_id=current_request_id,
+            conversation_id=current_conversation_id,
+            provider=provider,
+            model=model,
+            status="error",
+            prompt_preview=prompt_text_for_estimate,
+            response_preview=None,
+            prompt_tokens_est=prompt_tokens_est,
+            completion_tokens_est=0,
+            total_tokens_est=prompt_tokens_est,
+            elapsed_ms=elapsed_ms,
+            error_code=exc.error_code,
+            status_code=exc.status_code,
+        )
 
         yield ChatStreamEvent(
             type="error",
@@ -202,10 +265,34 @@ async def deepseek_chat_stream_events(
             error_code=exc.error_code,
             status_code=exc.status_code,
             elapsed_ms=elapsed_ms,
+            provider=provider,
+            model=model,
+            prompt_tokens_est=prompt_tokens_est,
+            completion_tokens_est=0,
+            total_tokens_est=prompt_tokens_est,
         )
 
     except Exception as exc:
         elapsed_ms = int((time.perf_counter() - start_time) * 1000)
+
+        prompt_tokens_est = estimate_token_count(user_message)
+
+        save_llm_call_log(
+            db=db,
+            request_id=current_request_id,
+            conversation_id=current_conversation_id,
+            provider=provider,
+            model=model,
+            status="error",
+            prompt_preview=user_message,
+            response_preview=None,
+            prompt_tokens_est=prompt_tokens_est,
+            completion_tokens_est=0,
+            total_tokens_est=prompt_tokens_est,
+            elapsed_ms=elapsed_ms,
+            error_code="UNKNOWN_STREAM_ERROR",
+            status_code=None,
+        )
 
         yield ChatStreamEvent(
             type="error",
@@ -214,6 +301,11 @@ async def deepseek_chat_stream_events(
             request_id=current_request_id,
             error_code="UNKNOWN_STREAM_ERROR",
             elapsed_ms=elapsed_ms,
+            provider=provider,
+            model=model,
+            prompt_tokens_est=prompt_tokens_est,
+            completion_tokens_est=0,
+            total_tokens_est=prompt_tokens_est,
         )
 
     finally:

@@ -21,6 +21,8 @@ from app.services.chat_history_service import (
     save_chat_message,
 )
 
+from app.models import LLMCallLog
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/ai", tags=["AI Stream"])
@@ -307,3 +309,40 @@ async def create_chat_message(
         "request_id": message.request_id,
         "created_at": message.created_at.isoformat() if message.created_at else None,
     }
+
+@router.get("/llm/call-logs")
+async def get_llm_call_logs(
+    limit: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """
+    查询最近 LLM 调用日志。
+
+    Week5 Day01 用于验证 token 估算和耗时记录是否成功。
+    """
+
+    rows = (
+        db.query(LLMCallLog)
+        .order_by(LLMCallLog.created_at.desc())
+        .limit(limit)
+        .all()
+    )
+
+    return [
+        {
+            "id": item.id,
+            "request_id": item.request_id,
+            "conversation_id": item.conversation_id,
+            "provider": item.provider,
+            "model": item.model,
+            "status": item.status,
+            "error_code": item.error_code,
+            "status_code": item.status_code,
+            "prompt_tokens_est": item.prompt_tokens_est,
+            "completion_tokens_est": item.completion_tokens_est,
+            "total_tokens_est": item.total_tokens_est,
+            "elapsed_ms": item.elapsed_ms,
+            "created_at": item.created_at.isoformat() if item.created_at else None,
+        }
+        for item in rows
+    ]

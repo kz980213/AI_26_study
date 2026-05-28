@@ -54,6 +54,11 @@ class ChatStreamEvent(BaseModel):
     context_tokens_est: Optional[int] = None
     truncated_messages_count: Optional[int] = None
 
+    # Week5 Day04：Prompt 版本信息
+    prompt_template_name: Optional[str] = None
+    prompt_version: Optional[str] = None
+    system_prompt_preview: Optional[str] = None
+
 class SaveChatMessageRequest(BaseModel):
     """
     手动保存聊天消息。

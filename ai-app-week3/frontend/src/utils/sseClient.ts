@@ -22,6 +22,11 @@ export interface ChatStreamPayload {
   context_messages_count?: number
   context_tokens_est?: number
   truncated_messages_count?: number
+
+   // Week5 Day04：Prompt 信息
+  prompt_template_name?: string
+  prompt_version?: string
+  system_prompt_preview?: string
 }
 
 export interface CreateChatStreamOptions {

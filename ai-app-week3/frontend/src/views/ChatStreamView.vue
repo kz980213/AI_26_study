@@ -159,6 +159,33 @@
           <div class="usage-title">本次模型调用</div>
           <div v-if="contextInfo.context_messages_count !== undefined" class="context-box">
             <div class="context-title">本次上下文控制</div>
+            <div class="prompt-box">
+              <div class="prompt-title">当前 Prompt 模板</div>
+
+              <div class="prompt-grid">
+                <div>
+                  模板名：
+                  <strong>{{ chatPromptInfo?.template_name || '-' }}</strong>
+                </div>
+
+                <div>
+                  当前版本：
+                  <strong>{{ chatPromptInfo?.version || '-' }}</strong>
+                </div>
+
+                <div>
+                  本次使用版本：
+                  <strong>{{ runtimePromptInfo.prompt_version || '-' }}</strong>
+                </div>
+              </div>
+
+              <div v-if="runtimePromptInfo.system_prompt_preview" class="prompt-preview">
+                <div class="prompt-preview-title">本次 System Prompt 预览：</div>
+                <pre>{{ runtimePromptInfo.system_prompt_preview }}</pre>
+              </div>
+
+              <div class="prompt-tip">Prompt 不再写死在模型调用函数里，而是由后端 prompt_service.py 统一管理。</div>
+            </div>
 
             <div class="context-grid">
               <div>
@@ -236,6 +263,10 @@ import {
   fetchLLMUsageSummary,
   type LLMUsageSummary,
 } from '../api/llmUsage'
+import {
+  fetchChatPromptInfo,
+  type ChatPromptInfo,
+} from '../api/prompt'
 
 type MessageRole = 'user' | 'assistant'
 type MessageStatus = 'done' | 'streaming' | 'error'
@@ -278,6 +309,14 @@ const contextInfo = ref<{
   context_messages_count?: number
   context_tokens_est?: number
   truncated_messages_count?: number
+}>({})
+
+const chatPromptInfo = ref<ChatPromptInfo | null>(null)
+
+const runtimePromptInfo = ref<{
+  prompt_template_name?: string
+  prompt_version?: string
+  system_prompt_preview?: string
 }>({})
 
 let streamController: ChatStreamController | null = null
@@ -433,6 +472,12 @@ function sendMessage(messageOverride?: string) {
           truncated_messages_count: data.truncated_messages_count,
         }
 
+        runtimePromptInfo.value = {
+          prompt_template_name: data.prompt_template_name,
+          prompt_version: data.prompt_version,
+          system_prompt_preview: data.system_prompt_preview,
+        }
+
         addLog(
           `后端开始输出，conversation_id=${data.conversation_id || '-'}，request_id=${data.request_id || '-'}`,
         )
@@ -557,6 +602,7 @@ function clearMessages() {
   errorText.value = ''
   llmUsageInfo.value = {}
   contextInfo.value = {}
+  runtimePromptInfo.value = {}
   localStorage.removeItem(CHAT_CONVERSATION_ID_KEY)
 
   closeStream()
@@ -617,6 +663,7 @@ async function switchConversation(targetConversationId: string) {
 function startNewConversation() {
   llmUsageInfo.value = {}
   contextInfo.value = {}
+  runtimePromptInfo.value = {}
   if (isStreaming.value) {
     return
   }
@@ -646,9 +693,19 @@ async function loadUsageSummary() {
   }
 }
 
+async function loadChatPromptInfo() {
+  try {
+    chatPromptInfo.value = await fetchChatPromptInfo()
+    addLog(`Prompt 信息已加载：${chatPromptInfo.value.version}`)
+  } catch (error) {
+    addLog(`加载 Prompt 信息失败：${String(error)}`)
+  }
+}
+
 onMounted(async () => {
   await loadConversations()
   await loadUsageSummary()
+  await loadChatPromptInfo()
 
   const savedConversationId = localStorage.getItem(CHAT_CONVERSATION_ID_KEY)
 
@@ -1121,6 +1178,62 @@ onBeforeUnmount(() => {
 
 @media (max-width: 900px) {
   .context-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.prompt-box {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #ddd6fe;
+  border-radius: 10px;
+  background: #f5f3ff;
+  color: #4c1d95;
+}
+
+.prompt-title {
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.prompt-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.prompt-preview {
+  margin-top: 10px;
+}
+
+.prompt-preview-title {
+  margin-bottom: 4px;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.prompt-preview pre {
+  max-height: 120px;
+  overflow: auto;
+  margin: 0;
+  padding: 8px;
+  border-radius: 8px;
+  background: #ffffff;
+  white-space: pre-wrap;
+  font-family: inherit;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.prompt-tip {
+  margin-top: 8px;
+  color: #64748b;
+  font-size: 12px;
+}
+
+@media (max-width: 900px) {
+  .prompt-grid {
     grid-template-columns: 1fr;
   }
 }

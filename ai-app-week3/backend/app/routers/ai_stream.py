@@ -25,6 +25,8 @@ from app.models import LLMCallLog
 
 from app.services.llm_cost_service import estimate_deepseek_cost_from_log
 
+from app.services.prompt_service import get_chat_prompt_info
+
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/ai", tags=["AI Stream"])
@@ -443,3 +445,13 @@ async def get_llm_usage_summary(
         "estimated_total_cost_cny": round(total_cost_cny, 6),
         "recent_logs": recent_logs,
     }
+
+@router.get("/prompts/chat")
+async def get_current_chat_prompt():
+    """
+    Week5 Day04：查看当前聊天 Prompt 模板信息。
+
+    这个接口不调用模型，只用于调试和展示。
+    """
+
+    return get_chat_prompt_info()

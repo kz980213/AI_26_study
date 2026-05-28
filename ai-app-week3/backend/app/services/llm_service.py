@@ -76,6 +76,7 @@ def map_deepseek_error_code(status_code: int) -> str:
 async def stream_deepseek_chat_chunks(
     user_message: str,
     history_messages: list[dict[str, str]] | None = None,
+    system_prompt: str | None = None,
 ) -> AsyncGenerator[str, None]:
     """
     调用 DeepSeek Chat Completion 流式接口。
@@ -94,7 +95,8 @@ async def stream_deepseek_chat_chunks(
     messages = [
         {
             "role": "system",
-            "content": (
+            "content": system_prompt 
+            or (
                 "你是一个 AI 应用开发学习助手。"
                 "回答要简洁、具体、偏实战。"
             ),

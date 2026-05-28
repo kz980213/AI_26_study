@@ -29,12 +29,20 @@ def estimate_token_count(text: str | None) -> int:
 def build_prompt_text_for_estimate(
     user_message: str,
     history_messages: list[dict[str, str]] | None = None,
+    system_prompt: str | None = None,
 ) -> str:
     """
-    把本次输入和历史上下文拼成一个文本，用于估算输入 token。
+    把 system prompt、本次输入和历史上下文拼成一个文本，
+    用于估算输入 token。
+
+    注意：
+    这里是估算，不是模型厂商精确 token 计数。
     """
 
     parts: list[str] = []
+
+    if system_prompt:
+        parts.append(f"system: {system_prompt}")
 
     if history_messages:
         for item in history_messages:
@@ -42,7 +50,14 @@ def build_prompt_text_for_estimate(
             content = item.get("content", "")
             parts.append(f"{role}: {content}")
 
-    if user_message:
+    last_message = history_messages[-1] if history_messages else None
+
+    # 如果 history_messages 里最后一条已经是当前 user_message，就不重复追加
+    if user_message and not (
+        last_message
+        and last_message.get("role") == "user"
+        and last_message.get("content") == user_message
+    ):
         parts.append(f"user: {user_message}")
 
     return "\n".join(parts)

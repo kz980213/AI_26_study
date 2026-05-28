@@ -21,6 +21,8 @@ from app.services.llm_usage_service import (
 )
 from app.services.context_service import build_limited_history_context
 
+from app.services.prompt_service import render_chat_system_prompt
+
 
 def pydantic_to_dict(model: Any) -> dict[str, Any]:
     """
@@ -163,10 +165,13 @@ async def deepseek_chat_stream_events(
         )
     
         history_messages = context_result.messages
+        prompt_render = render_chat_system_prompt()
+        system_prompt = prompt_render.system_prompt
 
         prompt_text_for_estimate = build_prompt_text_for_estimate(
             user_message=user_message,
             history_messages=history_messages,
+            system_prompt=system_prompt,
         )
 
         prompt_tokens_est = estimate_token_count(prompt_text_for_estimate)
@@ -182,6 +187,9 @@ async def deepseek_chat_stream_events(
             context_messages_count=context_result.selected_messages_count,
             context_tokens_est=context_result.context_tokens_est,
             truncated_messages_count=context_result.truncated_messages_count,
+            prompt_template_name=prompt_render.template_name,
+            prompt_version=prompt_render.version,
+            system_prompt_preview=prompt_render.preview,
         )
 
         index = 0
@@ -189,6 +197,7 @@ async def deepseek_chat_stream_events(
         async for chunk in stream_deepseek_chat_chunks(
             user_message=user_message,
             history_messages=history_messages,
+            system_prompt=system_prompt,
         ):
             assistant_parts.append(chunk)
 
@@ -247,6 +256,9 @@ async def deepseek_chat_stream_events(
             context_messages_count=context_result.selected_messages_count,
             context_tokens_est=context_result.context_tokens_est,
             truncated_messages_count=context_result.truncated_messages_count,
+            prompt_template_name=prompt_render.template_name,
+            prompt_version=prompt_render.version,
+            system_prompt_preview=prompt_render.preview,
         )
 
     except LLMStreamError as exc:

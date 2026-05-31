@@ -31,6 +31,9 @@ export interface LLMUsageSummary {
   estimated_output_cost_cny: number
   estimated_total_cost_cny: number
   recent_logs: LLMCallLogItem[]
+  prompt_template_name?: string
+  prompt_version?: string
+  system_prompt_preview?: string
 }
 
 export async function fetchLLMUsageSummary(limit = 20): Promise<LLMUsageSummary> {

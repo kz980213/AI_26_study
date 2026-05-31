@@ -100,6 +100,7 @@ async def deepseek_stream_generator(
     user_message: str,
     conversation_id: str | None = None,
     request_id: str | None = None,
+    prompt_version: str | None = None,
 ):
     """
     真实 DeepSeek 聊天式 SSE 生成器。
@@ -118,6 +119,7 @@ async def deepseek_stream_generator(
             user_message=user_message,
             conversation_id=conversation_id,
             request_id=current_request_id,
+            prompt_version=prompt_version,
         ):
             if await request.is_disconnected():
                 logger.info(
@@ -187,6 +189,7 @@ async def deepseek_chat_stream(
     request: Request,
     message: str = Query(..., min_length=1, description="用户输入的问题"),
     conversation_id: str | None = Query(None, description="会话 ID，可选"),
+    prompt_version: str | None = Query(None, description="Prompt 版本，可选"),
 ):
     """
     Day05：真实 DeepSeek 流式接口，增加错误分类、日志、request_id。
@@ -200,6 +203,7 @@ async def deepseek_chat_stream(
             user_message=message,
             conversation_id=conversation_id,
             request_id=request_id,
+            prompt_version=prompt_version,
         )
     )
 
@@ -349,6 +353,9 @@ async def get_llm_call_logs(
             "total_tokens_est": item.total_tokens_est,
             "elapsed_ms": item.elapsed_ms,
             "created_at": item.created_at.isoformat() if item.created_at else None,
+            "prompt_template_name": item.prompt_template_name,
+            "prompt_version": item.prompt_version,
+            "system_prompt_preview": item.system_prompt_preview,
         }
         for item in rows
     ]
@@ -425,6 +432,9 @@ async def get_llm_usage_summary(
                 "elapsed_ms": item.elapsed_ms,
                 "estimated_cost_cny": cost["total_cost_cny"],
                 "created_at": item.created_at.isoformat() if item.created_at else None,
+                "prompt_template_name": item.prompt_template_name,
+                "prompt_version": item.prompt_version,
+                "system_prompt_preview": item.system_prompt_preview,
             }
         )
 
@@ -447,7 +457,9 @@ async def get_llm_usage_summary(
     }
 
 @router.get("/prompts/chat")
-async def get_current_chat_prompt():
+async def get_current_chat_prompt(
+    prompt_version: str | None = Query(None, description="Prompt 版本，可选"),
+):
     """
     Week5 Day04：查看当前聊天 Prompt 模板信息。
 

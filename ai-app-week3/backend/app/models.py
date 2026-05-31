@@ -91,3 +91,7 @@ class LLMCallLog(Base):
     elapsed_ms = Column(Integer, nullable=True)
 
     created_at = Column(DateTime, default=datetime.utcnow, nullable=False)
+
+    prompt_template_name = Column(String(100), nullable=True)
+    prompt_version = Column(String(100), nullable=True)
+    system_prompt_preview = Column(Text, nullable=True)

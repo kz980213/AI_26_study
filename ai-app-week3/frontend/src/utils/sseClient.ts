@@ -34,6 +34,7 @@ export interface CreateChatStreamOptions {
   conversationId?: string
   endpoint?: string
   timeoutMs?: number
+  promptVersion?: string
   onOpen?: () => void
   onStart?: (data: ChatStreamPayload) => void
   onChunk?: (data: ChatStreamPayload) => void
@@ -59,6 +60,7 @@ export function createChatStream(options: CreateChatStreamOptions): ChatStreamCo
     conversationId,
     endpoint = '/ai/chat/stream',
     timeoutMs = 60000,
+    promptVersion,
     onOpen,
     onStart,
     onChunk,
@@ -72,6 +74,10 @@ export function createChatStream(options: CreateChatStreamOptions): ChatStreamCo
 
   if (conversationId) {
     params.set('conversation_id', conversationId)
+  }
+
+  if (promptVersion) {
+    params.set('prompt_version', promptVersion)
   }
 
   const url = `${API_BASE_URL}${endpoint}?${params.toString()}`

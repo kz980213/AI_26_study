@@ -91,6 +91,53 @@
         </div>
 
         <div v-if="usageSummary" class="summary-tip">当前成本基于 .env 中配置的单价估算，不代表模型厂商最终账单。</div>
+        <div v-if="usageSummary?.recent_logs?.length" class="call-log-table-wrap">
+          <div class="call-log-title">最近调用明细</div>
+
+          <table class="call-log-table">
+            <thead>
+              <tr>
+                <th>时间</th>
+                <th>状态</th>
+                <th>模型</th>
+                <th>Prompt版本</th>
+                <th>Token</th>
+                <th>耗时</th>
+                <th>成本</th>
+                <th>request_id</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <tr v-for="item in usageSummary.recent_logs" :key="item.id">
+                <td>{{ formatDateTime(item.created_at) }}</td>
+
+                <td>
+                  <span
+                    class="status-pill"
+                    :class="item.status === 'success' ? 'success' : 'error'"
+                  >{{ item.status }}</span>
+                </td>
+
+                <td>{{ item.model || '-' }}</td>
+
+                <td>
+                  <span class="prompt-version-pill">{{ item.prompt_version || '-' }}</span>
+                </td>
+
+                <td>{{ item.total_tokens_est ?? 0 }}</td>
+
+                <td>{{ item.elapsed_ms ?? '-' }} ms</td>
+
+                <td>¥{{ item.estimated_cost_cny ?? 0 }}</td>
+
+                <td>
+                  <span class="request-id-mini">{{ item.request_id }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
       <div class="chat-card" ref="chatCardRef">
@@ -160,7 +207,22 @@
           <div v-if="contextInfo.context_messages_count !== undefined" class="context-box">
             <div class="context-title">本次上下文控制</div>
             <div class="prompt-box">
-              <div class="prompt-title">当前 Prompt 模板</div>
+              <div class="prompt-header">
+                <div class="prompt-title">当前 Prompt 模板</div>
+
+                <select
+                  v-model="selectedPromptVersion"
+                  class="prompt-select"
+                  :disabled="isStreaming"
+                  @change="handlePromptVersionChange"
+                >
+                  <option
+                    v-for="item in chatPromptInfo?.available_versions || []"
+                    :key="item.version"
+                    :value="item.version"
+                  >{{ item.version }} - {{ item.name }}</option>
+                </select>
+              </div>
 
               <div class="prompt-grid">
                 <div>
@@ -169,14 +231,24 @@
                 </div>
 
                 <div>
-                  当前版本：
-                  <strong>{{ chatPromptInfo?.version || '-' }}</strong>
+                  当前选择：
+                  <strong>{{ selectedPromptVersion || '-' }}</strong>
                 </div>
 
                 <div>
-                  本次使用版本：
+                  本次实际使用：
                   <strong>{{ runtimePromptInfo.prompt_version || '-' }}</strong>
                 </div>
+              </div>
+
+              <div
+                v-for="item in chatPromptInfo?.available_versions || []"
+                :key="item.version"
+                class="prompt-version-desc"
+                :class="{ active: item.version === selectedPromptVersion }"
+              >
+                <strong>{{ item.version }}</strong>
+                ：{{ item.description }}
               </div>
 
               <div v-if="runtimePromptInfo.system_prompt_preview" class="prompt-preview">
@@ -184,7 +256,7 @@
                 <pre>{{ runtimePromptInfo.system_prompt_preview }}</pre>
               </div>
 
-              <div class="prompt-tip">Prompt 不再写死在模型调用函数里，而是由后端 prompt_service.py 统一管理。</div>
+              <div class="prompt-tip">你可以切换不同 Prompt 版本，观察同一个问题在不同提示词下的回答差异。</div>
             </div>
 
             <div class="context-grid">
@@ -319,6 +391,8 @@ const runtimePromptInfo = ref<{
   system_prompt_preview?: string
 }>({})
 
+const selectedPromptVersion = ref('')
+
 let streamController: ChatStreamController | null = null
 let currentAssistantMessageId = ''
 
@@ -445,6 +519,7 @@ function sendMessage(messageOverride?: string) {
     message: text,
     conversationId: conversationId.value || undefined,
     endpoint: '/ai/chat/stream/deepseek',
+    promptVersion: selectedPromptVersion.value || undefined,
     timeoutMs: 60000,
 
     onOpen: () => {
@@ -693,12 +768,35 @@ async function loadUsageSummary() {
   }
 }
 
-async function loadChatPromptInfo() {
+async function loadChatPromptInfo(promptVersion?: string) {
   try {
-    chatPromptInfo.value = await fetchChatPromptInfo()
+    chatPromptInfo.value = await fetchChatPromptInfo(promptVersion)
+
+    if (!selectedPromptVersion.value) {
+      selectedPromptVersion.value = chatPromptInfo.value.default_version
+    }
+
     addLog(`Prompt 信息已加载：${chatPromptInfo.value.version}`)
   } catch (error) {
     addLog(`加载 Prompt 信息失败：${String(error)}`)
+  }
+}
+
+async function handlePromptVersionChange() {
+  await loadChatPromptInfo(selectedPromptVersion.value)
+
+  addLog(`已切换 Prompt 版本：${selectedPromptVersion.value}`)
+}
+
+function formatDateTime(value?: string) {
+  if (!value) {
+    return '-'
+  }
+
+  try {
+    return new Date(value).toLocaleString()
+  } catch {
+    return value
   }
 }
 
@@ -1236,5 +1334,117 @@ onBeforeUnmount(() => {
   .prompt-grid {
     grid-template-columns: 1fr;
   }
+}
+.prompt-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.prompt-select {
+  min-width: 260px;
+  padding: 6px 10px;
+  border: 1px solid #c4b5fd;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #4c1d95;
+  font-size: 13px;
+}
+
+.prompt-version-desc {
+  margin-top: 8px;
+  padding: 8px;
+  border: 1px solid #ddd6fe;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #5b21b6;
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.prompt-version-desc.active {
+  border-color: #7c3aed;
+  background: #ede9fe;
+}
+
+@media (max-width: 900px) {
+  .prompt-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .prompt-select {
+    width: 100%;
+    min-width: 0;
+  }
+}
+.call-log-table-wrap {
+  margin-top: 14px;
+  overflow-x: auto;
+}
+
+.call-log-title {
+  margin-bottom: 8px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.call-log-table {
+  width: 100%;
+  min-width: 900px;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.call-log-table th,
+.call-log-table td {
+  padding: 8px;
+  border-bottom: 1px solid #e5e7eb;
+  text-align: left;
+  vertical-align: top;
+}
+
+.call-log-table th {
+  color: #6b7280;
+  background: #f9fafb;
+  font-weight: 600;
+}
+
+.status-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.status-pill.success {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.status-pill.error {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.prompt-version-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: #5b21b6;
+  background: #ede9fe;
+  font-size: 12px;
+}
+
+.request-id-mini {
+  display: inline-block;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #6b7280;
+  font-family: Consolas, Monaco, monospace;
 }
 </style>

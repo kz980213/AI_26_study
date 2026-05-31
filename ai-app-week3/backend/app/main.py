@@ -7,6 +7,8 @@ from app.database import Base, engine
 from app.middlewares import request_log_middleware
 import logging
 from app.config import settings
+from app.services.db_migration_service import ensure_llm_call_log_prompt_columns
+
 
 logging.basicConfig(
     level=logging.INFO,
@@ -14,6 +16,8 @@ logging.basicConfig(
 )
 
 Base.metadata.create_all(bind=engine)
+
+ensure_llm_call_log_prompt_columns()
 
 app = FastAPI(title="AI App API", version="0.1.0")
 app.add_exception_handler(FastAPIHTTPException, http_exception_handler)

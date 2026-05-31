@@ -113,6 +113,7 @@ async def deepseek_chat_stream_events(
     user_message: str,
     conversation_id: str | None = None,
     request_id: str | None = None,
+    prompt_version: str | None = None,
 ) -> AsyncGenerator[ChatStreamEvent, None]:
     """
     真实 DeepSeek 聊天流式事件。
@@ -165,7 +166,7 @@ async def deepseek_chat_stream_events(
         )
     
         history_messages = context_result.messages
-        prompt_render = render_chat_system_prompt()
+        prompt_render = render_chat_system_prompt(prompt_version=prompt_version)
         system_prompt = prompt_render.system_prompt
 
         prompt_text_for_estimate = build_prompt_text_for_estimate(
@@ -240,6 +241,9 @@ async def deepseek_chat_stream_events(
             completion_tokens_est=completion_tokens_est,
             total_tokens_est=total_tokens_est,
             elapsed_ms=elapsed_ms,
+            prompt_template_name=prompt_render.template_name,
+            prompt_version=prompt_render.version,
+            system_prompt_preview=prompt_render.preview,
         )
 
         yield ChatStreamEvent(
@@ -282,6 +286,9 @@ async def deepseek_chat_stream_events(
             elapsed_ms=elapsed_ms,
             error_code=exc.error_code,
             status_code=exc.status_code,
+            prompt_template_name=prompt_render.template_name,
+            prompt_version=prompt_render.version,
+            system_prompt_preview=prompt_render.preview,
         )
 
         yield ChatStreamEvent(
@@ -319,6 +326,9 @@ async def deepseek_chat_stream_events(
             elapsed_ms=elapsed_ms,
             error_code="UNKNOWN_STREAM_ERROR",
             status_code=None,
+            prompt_template_name=prompt_render.template_name,
+            prompt_version=prompt_render.version,
+            system_prompt_preview=prompt_render.preview,
         )
 
         yield ChatStreamEvent(

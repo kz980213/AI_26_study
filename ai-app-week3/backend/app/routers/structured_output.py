@@ -4,13 +4,18 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.schemas import (
+    StructuredTaskDetailResponse,
     StructuredTaskExtractRequest,
     StructuredTaskExtractResponse,
     StructuredTaskRecordListResponse,
+    StructuredTaskUpdateRequest,
+    StructuredTaskUpdateResponse,
 )
 from app.services.structured_task_record_service import (
     create_structured_task_record,
+    get_structured_task_record_by_id,
     list_recent_structured_task_records,
+    update_structured_task_record,
 )
 from app.services.structured_task_service import (
     StructuredTaskExtractError,
@@ -88,3 +93,56 @@ def list_recent_tasks(
     )
 
     return StructuredTaskRecordListResponse(items=records)
+
+@router.get(
+    "/tasks/{task_id}",
+    response_model=StructuredTaskDetailResponse,
+)
+def get_task_detail(
+    task_id: int,
+    db: Session = Depends(get_db),
+):
+    record = get_structured_task_record_by_id(
+        db=db,
+        task_id=task_id,
+    )
+
+    if not record:
+        raise HTTPException(
+            status_code=404,
+            detail="结构化任务记录不存在",
+        )
+
+    return StructuredTaskDetailResponse(item=record)
+
+
+@router.patch(
+    "/tasks/{task_id}",
+    response_model=StructuredTaskUpdateResponse,
+)
+def update_task_detail(
+    task_id: int,
+    payload: StructuredTaskUpdateRequest,
+    db: Session = Depends(get_db),
+):
+    record = get_structured_task_record_by_id(
+        db=db,
+        task_id=task_id,
+    )
+
+    if not record:
+        raise HTTPException(
+            status_code=404,
+            detail="结构化任务记录不存在",
+        )
+
+    updated_record = update_structured_task_record(
+        db=db,
+        record=record,
+        payload=payload,
+    )
+
+    return StructuredTaskUpdateResponse(
+        success=True,
+        item=updated_record,
+    )

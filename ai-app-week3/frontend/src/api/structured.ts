@@ -34,6 +34,23 @@ export interface StructuredTaskRecordListResponse {
   items: StructuredTaskRecord[]
 }
 
+export interface StructuredTaskDetailResponse {
+  item: StructuredTaskRecord
+}
+
+export interface StructuredTaskUpdatePayload {
+  title: string
+  category: string
+  priority: 'low' | 'medium' | 'high'
+  due_time?: string | null
+  description?: string | null
+}
+
+export interface StructuredTaskUpdateResponse {
+  success: boolean
+  item: StructuredTaskRecord
+}
+
 const API_BASE_URL =
   import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8010'
 
@@ -85,4 +102,59 @@ export async function fetchRecentStructuredTasks(
   }
 
   return result.items || []
+}
+
+export async function fetchStructuredTaskDetail(
+  taskId: number
+): Promise<StructuredTaskRecord> {
+  const response = await fetch(
+    `${API_BASE_URL}/ai/structured/tasks/${taskId}`
+  )
+
+  const result = await response.json().catch(() => null)
+
+  if (!response.ok) {
+    const message =
+      result?.detail?.message ||
+      result?.detail ||
+      '获取结构化任务详情失败'
+
+    throw new Error(
+      typeof message === 'string' ? message : JSON.stringify(message)
+    )
+  }
+
+  return result.item
+}
+
+
+export async function updateStructuredTask(
+  taskId: number,
+  payload: StructuredTaskUpdatePayload
+): Promise<StructuredTaskRecord> {
+  const response = await fetch(
+    `${API_BASE_URL}/ai/structured/tasks/${taskId}`,
+    {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    }
+  )
+
+  const result = await response.json().catch(() => null)
+
+  if (!response.ok) {
+    const message =
+      result?.detail?.message ||
+      result?.detail ||
+      '保存结构化任务失败'
+
+    throw new Error(
+      typeof message === 'string' ? message : JSON.stringify(message)
+    )
+  }
+
+  return result.item
 }

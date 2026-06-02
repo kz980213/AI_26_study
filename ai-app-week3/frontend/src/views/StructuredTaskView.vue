@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import {
   extractTaskFromText,
   fetchRecentStructuredTasks,
+  fetchStructuredTaskDetail,
+  updateStructuredTask,
   type StructuredTask,
   type StructuredTaskRecord,
+  type StructuredTaskUpdatePayload,
 } from '../api/structured'
 
 const inputText = ref(
@@ -28,6 +31,19 @@ const recordId = ref<number | null>(null)
 const createdAt = ref<string | null>(null)
 const recentTasks = ref<StructuredTaskRecord[]>([])
 const recentLoading = ref(false)
+
+const selectedRecord = ref<StructuredTaskRecord | null>(null)
+const editLoading = ref(false)
+const saveLoading = ref(false)
+const editMessage = ref('')
+
+const editForm = reactive<StructuredTaskUpdatePayload>({
+  title: '',
+  category: '',
+  priority: 'medium',
+  due_time: '',
+  description: '',
+})
 
 async function handleExtract() {
   const text = inputText.value.trim()
@@ -76,6 +92,82 @@ async function loadRecentTasks() {
   }
 }
 
+async function handleEditRecord(record: StructuredTaskRecord) {
+  editLoading.value = true
+  editMessage.value = ''
+
+  try {
+    const detail = await fetchStructuredTaskDetail(record.id)
+
+    selectedRecord.value = detail
+
+    editForm.title = detail.title
+    editForm.category = detail.category
+    editForm.priority = detail.priority
+    editForm.due_time = detail.due_time || ''
+    editForm.description = detail.description || ''
+  } catch (error) {
+    editMessage.value =
+      error instanceof Error ? error.message : '加载详情失败'
+  } finally {
+    editLoading.value = false
+  }
+}
+
+
+async function handleSaveCorrection() {
+  if (!selectedRecord.value) {
+    editMessage.value = '请先选择一条记录'
+    return
+  }
+
+  if (!editForm.title.trim()) {
+    editMessage.value = '标题不能为空'
+    return
+  }
+
+  if (!editForm.category.trim()) {
+    editMessage.value = '分类不能为空'
+    return
+  }
+
+  saveLoading.value = true
+  editMessage.value = ''
+
+  try {
+    const updated = await updateStructuredTask(
+      selectedRecord.value.id,
+      {
+        title: editForm.title.trim(),
+        category: editForm.category.trim(),
+        priority: editForm.priority,
+        due_time: editForm.due_time?.trim() || null,
+        description: editForm.description?.trim() || null,
+      }
+    )
+
+    selectedRecord.value = updated
+    editMessage.value = '保存成功'
+
+    await loadRecentTasks()
+
+    if (recordId.value === updated.id && task.value) {
+      task.value = {
+        title: updated.title,
+        category: updated.category,
+        priority: updated.priority,
+        due_time: updated.due_time,
+        description: updated.description,
+      }
+    }
+  } catch (error) {
+    editMessage.value =
+      error instanceof Error ? error.message : '保存失败'
+  } finally {
+    saveLoading.value = false
+  }
+}
+
 onMounted(() => {
   loadRecentTasks()
 })
@@ -115,6 +207,7 @@ onMounted(() => {
             <th>优先级</th>
             <th>时间</th>
             <th>修复次数</th>
+            <th>操作</th>
           </tr>
         </thead>
 
@@ -126,13 +219,65 @@ onMounted(() => {
             <td>{{ item.priority }}</td>
             <td>{{ item.due_time || '-' }}</td>
             <td>{{ item.retry_count }}</td>
+            <td>
+              <button class="small-button" @click="handleEditRecord(item)">编辑</button>
+            </td>
           </tr>
 
           <tr v-if="recentTasks.length === 0">
-            <td colspan="6">暂无记录</td>
+            <td colspan="7">暂无记录</td>
           </tr>
         </tbody>
       </table>
+    </div>
+
+    <div class="edit-panel">
+      <h3>人工修正</h3>
+
+      <p v-if="editLoading" class="meta">正在加载详情...</p>
+
+      <div v-if="selectedRecord" class="edit-card">
+        <p class="meta">当前编辑记录 ID：{{ selectedRecord.id }}</p>
+
+        <label class="field">
+          <span>标题</span>
+          <input v-model="editForm.title" class="input" />
+        </label>
+
+        <label class="field">
+          <span>分类</span>
+          <input v-model="editForm.category" class="input" />
+        </label>
+
+        <label class="field">
+          <span>优先级</span>
+          <select v-model="editForm.priority" class="input">
+            <option value="low">low</option>
+            <option value="medium">medium</option>
+            <option value="high">high</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>时间</span>
+          <input v-model="editForm.due_time" class="input" />
+        </label>
+
+        <label class="field">
+          <span>描述</span>
+          <textarea v-model="editForm.description" class="textarea small" />
+        </label>
+
+        <button
+          class="button"
+          :disabled="saveLoading"
+          @click="handleSaveCorrection"
+        >{{ saveLoading ? '保存中...' : '保存人工修正' }}</button>
+      </div>
+
+      <p v-else class="meta">请先在最近记录中点击“编辑”。</p>
+
+      <p v-if="editMessage" class="meta">{{ editMessage }}</p>
     </div>
 
     <div v-if="task" class="result">
@@ -259,5 +404,43 @@ pre {
 .table th {
   background: #fafafa;
   font-weight: 600;
+}
+.small-button {
+  padding: 4px 8px;
+  cursor: pointer;
+}
+
+.edit-panel {
+  margin-top: 32px;
+  padding-top: 16px;
+  border-top: 1px solid #eee;
+}
+
+.edit-card {
+  border: 1px solid #eee;
+  padding: 16px;
+  background: #fff;
+}
+
+.field {
+  display: block;
+  margin-bottom: 12px;
+}
+
+.field span {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+}
+
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px;
+  font-size: 14px;
+}
+
+.textarea.small {
+  min-height: 80px;
 }
 </style>

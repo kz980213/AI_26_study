@@ -2,6 +2,8 @@ from sqlalchemy.orm import Session
 
 from app.models import StructuredTaskRecord
 from app.schemas import StructuredTaskExtractResponse
+from typing import Optional
+from app.schemas import StructuredTaskUpdateRequest
 
 
 def create_structured_task_record(
@@ -42,3 +44,31 @@ def list_recent_structured_task_records(
         .limit(safe_limit)
         .all()
     )
+
+def get_structured_task_record_by_id(
+    db: Session,
+    task_id: int,
+) -> Optional[StructuredTaskRecord]:
+    return (
+        db.query(StructuredTaskRecord)
+        .filter(StructuredTaskRecord.id == task_id)
+        .first()
+    )
+
+
+def update_structured_task_record(
+    db: Session,
+    record: StructuredTaskRecord,
+    payload: StructuredTaskUpdateRequest,
+) -> StructuredTaskRecord:
+    record.title = payload.title
+    record.category = payload.category
+    record.priority = payload.priority
+    record.due_time = payload.due_time
+    record.description = payload.description
+
+    db.add(record)
+    db.commit()
+    db.refresh(record)
+
+    return record

@@ -120,3 +120,19 @@ class StructuredTaskRecordItem(BaseModel):
 
 class StructuredTaskRecordListResponse(BaseModel):
     items: list[StructuredTaskRecordItem]
+
+class StructuredTaskDetailResponse(BaseModel):
+    item: StructuredTaskRecordItem
+
+
+class StructuredTaskUpdateRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=80)
+    category: str = Field(..., min_length=1, max_length=30)
+    priority: Literal["low", "medium", "high"]
+    due_time: Optional[str] = Field(default=None, max_length=50)
+    description: Optional[str] = Field(default=None, max_length=300)
+
+
+class StructuredTaskUpdateResponse(BaseModel):
+    success: bool
+    item: StructuredTaskRecordItem

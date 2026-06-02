@@ -1,13 +1,20 @@
 import httpx
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.schemas import ToolCallExecuteRequest, ToolCallExecuteResponse
+from app.schemas import (
+    ToolCallExecuteRequest,
+    ToolCallExecuteResponse,
+    ToolCallLogListResponse,
+    ToolDefinitionListResponse,
+)
+from app.services.tool_call_log_service import list_recent_tool_call_logs
 from app.services.tool_calling_service import (
     ToolCallingError,
     execute_tool_call,
 )
+from app.services.tool_registry import list_available_tools
 
 router = APIRouter(
     prefix="/ai/tools",
@@ -56,3 +63,27 @@ async def execute_ai_tool(
                 "error": str(exc),
             },
         )
+
+
+@router.get(
+    "/logs/recent",
+    response_model=ToolCallLogListResponse,
+)
+def list_recent_logs(
+    limit: int = Query(default=20, ge=1, le=50),
+    db: Session = Depends(get_db),
+):
+    logs = list_recent_tool_call_logs(
+        db=db,
+        limit=limit,
+    )
+
+    return ToolCallLogListResponse(items=logs)
+
+@router.get(
+    "/available",
+    response_model=ToolDefinitionListResponse,
+)
+def list_ai_available_tools():
+    tools = list_available_tools()
+    return ToolDefinitionListResponse(items=tools)

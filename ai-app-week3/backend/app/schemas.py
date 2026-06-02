@@ -161,3 +161,34 @@ class ToolCallExecuteResponse(BaseModel):
     tool_result: Dict[str, Any]
     raw_text: str
     elapsed_ms: int
+    retry_count: int = 0
+    log_id: Optional[int] = None
+
+class ToolCallLogItem(BaseModel):
+    id: int
+    source_text: str
+    tool_name: Optional[str] = None
+    arguments_json: Optional[str] = None
+    tool_result_json: Optional[str] = None
+    raw_text: Optional[str] = None
+    status: str
+    error_message: Optional[str] = None
+    elapsed_ms: int
+    retry_count: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class ToolCallLogListResponse(BaseModel):
+    items: list[ToolCallLogItem]
+
+class ToolDefinitionItem(BaseModel):
+    name: str
+    description: str
+    arguments_schema: Dict[str, Any]
+
+
+class ToolDefinitionListResponse(BaseModel):
+    items: list[ToolDefinitionItem]

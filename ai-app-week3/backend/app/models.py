@@ -118,3 +118,25 @@ class StructuredTaskRecord(Base):
     elapsed_ms = Column(Integer, nullable=False, default=0)
 
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+class ToolCallLog(Base):
+    __tablename__ = "tool_call_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    source_text = Column(Text, nullable=False)
+
+    tool_name = Column(String(50), nullable=True)
+
+    arguments_json = Column(Text, nullable=True)
+    tool_result_json = Column(Text, nullable=True)
+
+    raw_text = Column(Text, nullable=True)
+
+    status = Column(String(20), nullable=False, default="success")
+    error_message = Column(Text, nullable=True)
+
+    elapsed_ms = Column(Integer, nullable=False, default=0)
+    retry_count = Column(Integer, nullable=False, default=0)
+
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)

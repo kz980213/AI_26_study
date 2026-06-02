@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Literal, Optional
+from datetime import datetime
 
 class RegisterRequest(BaseModel):
     username: str = Field(...,min_length=3, max_length=50, description="用户名", examples=["kk"])
@@ -93,3 +94,29 @@ class StructuredTaskExtractResponse(BaseModel):
     data: StructuredTask
     raw_text: str
     elapsed_ms: int
+    retry_count: int = 0
+    id: Optional[int] = None
+    created_at: Optional[datetime] = None
+
+class StructuredTaskRecordItem(BaseModel):
+    id: int
+    source_text: str
+
+    title: str
+    category: str
+    priority: Literal["low", "medium", "high"]
+
+    due_time: Optional[str] = None
+    description: Optional[str] = None
+
+    raw_text: Optional[str] = None
+    retry_count: int
+    elapsed_ms: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class StructuredTaskRecordListResponse(BaseModel):
+    items: list[StructuredTaskRecordItem]

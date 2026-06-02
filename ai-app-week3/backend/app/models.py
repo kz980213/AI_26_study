@@ -98,3 +98,23 @@ class LLMCallLog(Base):
     
     temperature = Column(String(20), nullable=True)
     max_tokens = Column(Integer, nullable=True)
+class StructuredTaskRecord(Base):
+    __tablename__ = "structured_tasks"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    source_text = Column(Text, nullable=False)
+
+    title = Column(String(80), nullable=False)
+    category = Column(String(30), nullable=False)
+    priority = Column(String(20), nullable=False)
+
+    due_time = Column(String(50), nullable=True)
+    description = Column(Text, nullable=True)
+
+    raw_text = Column(Text, nullable=True)
+
+    retry_count = Column(Integer, nullable=False, default=0)
+    elapsed_ms = Column(Integer, nullable=False, default=0)
+
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)

@@ -1,7 +1,17 @@
 import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
 
-from app.schemas import StructuredTaskExtractRequest, StructuredTaskExtractResponse
+from app.database import get_db
+from app.schemas import (
+    StructuredTaskExtractRequest,
+    StructuredTaskExtractResponse,
+    StructuredTaskRecordListResponse,
+)
+from app.services.structured_task_record_service import (
+    create_structured_task_record,
+    list_recent_structured_task_records,
+)
 from app.services.structured_task_service import (
     StructuredTaskExtractError,
     extract_structured_task,
@@ -17,9 +27,23 @@ router = APIRouter(
     "/tasks/extract",
     response_model=StructuredTaskExtractResponse,
 )
-async def extract_task(payload: StructuredTaskExtractRequest):
+async def extract_task(
+    payload: StructuredTaskExtractRequest,
+    db: Session = Depends(get_db),
+):
     try:
-        return await extract_structured_task(payload.text)
+        result = await extract_structured_task(payload.text)
+
+        record = create_structured_task_record(
+            db=db,
+            source_text=payload.text,
+            extract_result=result,
+        )
+
+        result.id = record.id
+        result.created_at = record.created_at
+
+        return result
 
     except StructuredTaskExtractError as exc:
         raise HTTPException(
@@ -48,3 +72,19 @@ async def extract_task(payload: StructuredTaskExtractRequest):
                 "error": str(exc),
             },
         )
+
+
+@router.get(
+    "/tasks/recent",
+    response_model=StructuredTaskRecordListResponse,
+)
+def list_recent_tasks(
+    limit: int = Query(default=20, ge=1, le=50),
+    db: Session = Depends(get_db),
+):
+    records = list_recent_structured_task_records(
+        db=db,
+        limit=limit,
+    )
+
+    return StructuredTaskRecordListResponse(items=records)

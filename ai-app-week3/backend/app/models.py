@@ -95,3 +95,6 @@ class LLMCallLog(Base):
     prompt_template_name = Column(String(100), nullable=True)
     prompt_version = Column(String(100), nullable=True)
     system_prompt_preview = Column(Text, nullable=True)
+    
+    temperature = Column(String(20), nullable=True)
+    max_tokens = Column(Integer, nullable=True)

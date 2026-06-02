@@ -40,6 +40,16 @@ def ensure_llm_call_log_prompt_columns() -> None:
             "ALTER TABLE llm_call_logs ADD COLUMN system_prompt_preview TEXT"
         )
 
+    if "temperature" not in existing_column_names:
+        alter_sql_list.append(
+            "ALTER TABLE llm_call_logs ADD COLUMN temperature VARCHAR(20)"
+    )
+
+    if "max_tokens" not in existing_column_names:
+        alter_sql_list.append(
+            "ALTER TABLE llm_call_logs ADD COLUMN max_tokens INTEGER"
+    )
+
     if not alter_sql_list:
         return
 

@@ -7,7 +7,7 @@
         <button @click="goToTaskParser">进入 AI 任务解析页</button>
         <button @click="goToKnowledge">进入知识库管理页</button>
         <button @click="goToAiChat">进入 AI 聊天页</button>
-        <button @click="goChatStreamView">WeekDay02</button>
+        <button @click="goStructuredTasks">进入结构化任务页</button>
         <button @click="logout">退出登录</button>
     </div>
 </template>
@@ -47,5 +47,9 @@ const goToAiChat = () => {
 
 const goChatStreamView = () => {
     router.push('/chatStreamView')
+}
+
+const goStructuredTasks = () => {
+    router.push('/structured-tasks')
 }
 </script>

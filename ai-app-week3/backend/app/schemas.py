@@ -59,6 +59,9 @@ class ChatStreamEvent(BaseModel):
     prompt_version: Optional[str] = None
     system_prompt_preview: Optional[str] = None
 
+    temperature: Optional[float] = None
+    max_tokens: Optional[int] = None
+
 class SaveChatMessageRequest(BaseModel):
     """
     手动保存聊天消息。
@@ -72,3 +75,21 @@ class SaveChatMessageRequest(BaseModel):
     role: Literal["user", "assistant"]
     content: str
     request_id: Optional[str] = None
+
+class StructuredTaskExtractRequest(BaseModel):
+    text: str = Field(..., min_length=2, max_length=1000)
+
+
+class StructuredTask(BaseModel):
+    title: str = Field(..., min_length=1, max_length=80)
+    category: str = Field(..., min_length=1, max_length=30)
+    priority: Literal["low", "medium", "high"]
+    due_time: Optional[str] = Field(default=None, max_length=50)
+    description: Optional[str] = Field(default=None, max_length=300)
+
+
+class StructuredTaskExtractResponse(BaseModel):
+    success: bool
+    data: StructuredTask
+    raw_text: str
+    elapsed_ms: int

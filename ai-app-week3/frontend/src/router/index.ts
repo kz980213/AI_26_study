@@ -8,6 +8,7 @@ import TaskParserView from '../views/TaskParserView.vue'
 import KnowledgeView from '../views/KnowledgeIngestView.vue'
 import AiChatView from '../views/AiChatView.vue'
 import ChatStreamView from '../views/ChatStreamView.vue'
+import StructuredTaskView from '../views/StructuredTaskView.vue'
 import { getToken } from '../utils/storage'
 
 const router = createRouter({
@@ -62,6 +63,11 @@ const router = createRouter({
       name: 'chatStreamView',
       component: ChatStreamView,
     },
+    {
+      path: '/structured-tasks',
+      name: 'structuredTasks',
+      component: StructuredTaskView,
+    }
   ],
   
 })

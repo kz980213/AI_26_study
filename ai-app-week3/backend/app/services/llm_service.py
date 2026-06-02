@@ -77,6 +77,8 @@ async def stream_deepseek_chat_chunks(
     user_message: str,
     history_messages: list[dict[str, str]] | None = None,
     system_prompt: str | None = None,
+    temperature: float = 0.7,
+    max_tokens: int = 800,
 ) -> AsyncGenerator[str, None]:
     """
     调用 DeepSeek Chat Completion 流式接口。
@@ -116,7 +118,8 @@ async def stream_deepseek_chat_chunks(
         "model": settings.DEEPSEEK_MODEL,
         "messages": messages,
         "stream": True,
-        "max_tokens": 800,
+        "temperature": temperature,
+        "max_tokens": max_tokens,
     }
 
     timeout = httpx.Timeout(

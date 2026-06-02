@@ -114,6 +114,8 @@ async def deepseek_chat_stream_events(
     conversation_id: str | None = None,
     request_id: str | None = None,
     prompt_version: str | None = None,
+    temperature: float = 0.7,
+    max_tokens: int = 800,
 ) -> AsyncGenerator[ChatStreamEvent, None]:
     """
     真实 DeepSeek 聊天流式事件。
@@ -191,6 +193,8 @@ async def deepseek_chat_stream_events(
             prompt_template_name=prompt_render.template_name,
             prompt_version=prompt_render.version,
             system_prompt_preview=prompt_render.preview,
+            temperature=temperature,
+            max_tokens=max_tokens,
         )
 
         index = 0
@@ -199,6 +203,8 @@ async def deepseek_chat_stream_events(
             user_message=user_message,
             history_messages=history_messages,
             system_prompt=system_prompt,
+            temperature=temperature,
+            max_tokens=max_tokens,
         ):
             assistant_parts.append(chunk)
 
@@ -263,6 +269,8 @@ async def deepseek_chat_stream_events(
             prompt_template_name=prompt_render.template_name,
             prompt_version=prompt_render.version,
             system_prompt_preview=prompt_render.preview,
+            temperature=temperature,
+            max_tokens=max_tokens,
         )
 
     except LLMStreamError as exc:
@@ -289,6 +297,8 @@ async def deepseek_chat_stream_events(
             prompt_template_name=prompt_render.template_name,
             prompt_version=prompt_render.version,
             system_prompt_preview=prompt_render.preview,
+            temperature=temperature,
+            max_tokens=max_tokens,
         )
 
         yield ChatStreamEvent(

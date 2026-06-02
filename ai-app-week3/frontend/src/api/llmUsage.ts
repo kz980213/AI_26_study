@@ -15,6 +15,8 @@ export interface LLMCallLogItem {
   elapsed_ms?: number
   estimated_cost_cny: number
   created_at?: string
+  temperature?: string
+  max_tokens?: number
 }
 
 export interface LLMUsageSummary {

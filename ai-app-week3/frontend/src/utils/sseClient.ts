@@ -27,6 +27,9 @@ export interface ChatStreamPayload {
   prompt_template_name?: string
   prompt_version?: string
   system_prompt_preview?: string
+
+  temperature?: number | string
+  max_tokens?: number
 }
 
 export interface CreateChatStreamOptions {
@@ -35,6 +38,8 @@ export interface CreateChatStreamOptions {
   endpoint?: string
   timeoutMs?: number
   promptVersion?: string
+  temperature?: number
+  maxTokens?: number
   onOpen?: () => void
   onStart?: (data: ChatStreamPayload) => void
   onChunk?: (data: ChatStreamPayload) => void
@@ -61,6 +66,8 @@ export function createChatStream(options: CreateChatStreamOptions): ChatStreamCo
     endpoint = '/ai/chat/stream',
     timeoutMs = 60000,
     promptVersion,
+    temperature,
+    maxTokens,
     onOpen,
     onStart,
     onChunk,
@@ -78,6 +85,14 @@ export function createChatStream(options: CreateChatStreamOptions): ChatStreamCo
 
   if (promptVersion) {
     params.set('prompt_version', promptVersion)
+  }
+
+  if (temperature !== undefined) {
+    params.set('temperature', String(temperature))
+  }
+
+  if (maxTokens !== undefined) {
+    params.set('max_tokens', String(maxTokens))
   }
 
   const url = `${API_BASE_URL}${endpoint}?${params.toString()}`

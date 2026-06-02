@@ -23,6 +23,8 @@ def save_llm_call_log(
     prompt_template_name: str | None = None,
     prompt_version: str | None = None,
     system_prompt_preview: str | None = None,
+    temperature: float | None = None,
+    max_tokens: int | None = None,
 ) -> LLMCallLog:
     """
     保存一次 LLM 调用日志。
@@ -51,6 +53,8 @@ def save_llm_call_log(
         prompt_template_name=prompt_template_name,
         prompt_version=prompt_version,
         system_prompt_preview=(system_prompt_preview or "")[:1000],
+        temperature=str(temperature) if temperature is not None else None,
+        max_tokens=max_tokens,
     )
 
     db.add(log)

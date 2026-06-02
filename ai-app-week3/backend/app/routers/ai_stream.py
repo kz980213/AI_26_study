@@ -101,6 +101,8 @@ async def deepseek_stream_generator(
     conversation_id: str | None = None,
     request_id: str | None = None,
     prompt_version: str | None = None,
+    temperature: float = 0.7,
+    max_tokens: int = 800,
 ):
     """
     真实 DeepSeek 聊天式 SSE 生成器。
@@ -120,6 +122,8 @@ async def deepseek_stream_generator(
             conversation_id=conversation_id,
             request_id=current_request_id,
             prompt_version=prompt_version,
+            temperature=temperature,
+            max_tokens=max_tokens,
         ):
             if await request.is_disconnected():
                 logger.info(
@@ -190,6 +194,8 @@ async def deepseek_chat_stream(
     message: str = Query(..., min_length=1, description="用户输入的问题"),
     conversation_id: str | None = Query(None, description="会话 ID，可选"),
     prompt_version: str | None = Query(None, description="Prompt 版本，可选"),
+    temperature: float = Query(0.7, ge=0, le=2, description="模型随机性，0-2"),
+    max_tokens: int = Query(800, ge=100, le=4000, description="最大输出 token"),
 ):
     """
     Day05：真实 DeepSeek 流式接口，增加错误分类、日志、request_id。
@@ -204,6 +210,8 @@ async def deepseek_chat_stream(
             conversation_id=conversation_id,
             request_id=request_id,
             prompt_version=prompt_version,
+            temperature=temperature,
+            max_tokens=max_tokens,
         )
     )
 
@@ -356,6 +364,8 @@ async def get_llm_call_logs(
             "prompt_template_name": item.prompt_template_name,
             "prompt_version": item.prompt_version,
             "system_prompt_preview": item.system_prompt_preview,
+            "temperature": item.temperature,
+            "max_tokens": item.max_tokens,
         }
         for item in rows
     ]
@@ -435,6 +445,8 @@ async def get_llm_usage_summary(
                 "prompt_template_name": item.prompt_template_name,
                 "prompt_version": item.prompt_version,
                 "system_prompt_preview": item.system_prompt_preview,
+                "temperature": item.temperature,
+                "max_tokens": item.max_tokens,
             }
         )
 

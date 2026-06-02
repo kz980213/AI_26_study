@@ -105,6 +105,7 @@
                 <th>耗时</th>
                 <th>成本</th>
                 <th>request_id</th>
+                <th>参数</th>
               </tr>
             </thead>
 
@@ -133,6 +134,11 @@
 
                 <td>
                   <span class="request-id-mini">{{ item.request_id }}</span>
+                </td>
+                <td>
+                  T={{ item.temperature ?? '-' }}
+                  <br />
+                  Max={{ item.max_tokens ?? '-' }}
                 </td>
               </tr>
             </tbody>
@@ -258,6 +264,37 @@
 
               <div class="prompt-tip">你可以切换不同 Prompt 版本，观察同一个问题在不同提示词下的回答差异。</div>
             </div>
+            <div class="model-params-box">
+              <div class="model-params-title">模型参数配置</div>
+
+              <div class="model-params-grid">
+                <label class="model-param-item">
+                  <span>Temperature：{{ modelParams.temperature }}</span>
+                  <input
+                    v-model.number="modelParams.temperature"
+                    type="range"
+                    min="0"
+                    max="2"
+                    step="0.1"
+                    :disabled="isStreaming"
+                  />
+                  <small>越低越稳定，越高越发散。</small>
+                </label>
+
+                <label class="model-param-item">
+                  <span>Max Tokens</span>
+                  <input
+                    v-model.number="modelParams.maxTokens"
+                    type="number"
+                    min="100"
+                    max="4000"
+                    step="100"
+                    :disabled="isStreaming"
+                  />
+                  <small>限制本次回答最大输出长度。</small>
+                </label>
+              </div>
+            </div>
 
             <div class="context-grid">
               <div>
@@ -288,6 +325,8 @@
             <div>输出估算 Token：{{ llmUsageInfo.completion_tokens_est ?? '-' }}</div>
             <div>总估算 Token：{{ llmUsageInfo.total_tokens_est ?? '-' }}</div>
             <div>耗时：{{ llmUsageInfo.elapsed_ms ?? '-' }} ms</div>
+            <div>Temperature：{{ llmUsageInfo.temperature ?? '-' }}</div>
+            <div>Max Tokens：{{ llmUsageInfo.max_tokens ?? '-' }}</div>
           </div>
 
           <div class="usage-tip">当前 token 为粗略估算值，后续会替换为模型厂商返回的精确 usage。</div>
@@ -372,6 +411,8 @@ const llmUsageInfo = ref<{
   completion_tokens_est?: number
   total_tokens_est?: number
   elapsed_ms?: number
+  temperature?: number | string
+  max_tokens?: number
 }>({})
 
 const usageSummary = ref<LLMUsageSummary | null>(null)
@@ -392,6 +433,11 @@ const runtimePromptInfo = ref<{
 }>({})
 
 const selectedPromptVersion = ref('')
+
+const modelParams = ref({
+  temperature: 0.5,
+  maxTokens: 800,
+})
 
 let streamController: ChatStreamController | null = null
 let currentAssistantMessageId = ''
@@ -520,6 +566,8 @@ function sendMessage(messageOverride?: string) {
     conversationId: conversationId.value || undefined,
     endpoint: '/ai/chat/stream/deepseek',
     promptVersion: selectedPromptVersion.value || undefined,
+    temperature: modelParams.value.temperature,
+    maxTokens: modelParams.value.maxTokens,
     timeoutMs: 60000,
 
     onOpen: () => {
@@ -571,6 +619,8 @@ function sendMessage(messageOverride?: string) {
         completion_tokens_est: data.completion_tokens_est,
         total_tokens_est: data.total_tokens_est,
         elapsed_ms: data.elapsed_ms,
+        temperature: data.temperature,
+        max_tokens: data.max_tokens,
       }
 
       contextInfo.value = {
@@ -1446,5 +1496,47 @@ onBeforeUnmount(() => {
   white-space: nowrap;
   color: #6b7280;
   font-family: Consolas, Monaco, monospace;
+}
+.model-params-box {
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid #fed7aa;
+  border-radius: 10px;
+  background: #fff7ed;
+  color: #7c2d12;
+}
+
+.model-params-title {
+  margin-bottom: 8px;
+  font-weight: 700;
+}
+
+.model-params-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.model-param-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.model-param-item input[type="number"] {
+  padding: 6px 8px;
+  border: 1px solid #fdba74;
+  border-radius: 8px;
+}
+
+.model-param-item small {
+  color: #9a3412;
+}
+
+@media (max-width: 900px) {
+  .model-params-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

@@ -8,6 +8,7 @@
         <button @click="goToKnowledge">进入知识库管理页</button>
         <button @click="goToAiChat">进入 AI 聊天页</button>
         <button @click="goStructuredTasks">进入结构化任务页</button>
+        <button @click="goToToolCalling">进入工具调用页</button>
         <button @click="logout">退出登录</button>
     </div>
 </template>
@@ -51,5 +52,9 @@ const goChatStreamView = () => {
 
 const goStructuredTasks = () => {
     router.push('/structured-tasks')
+}
+
+const goToToolCalling = () => {
+    router.push('/tool-calling')
 }
 </script>

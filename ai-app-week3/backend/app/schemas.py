@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Literal, Optional
+from typing import Literal, Optional, Any, Dict
 from datetime import datetime
 
 class RegisterRequest(BaseModel):
@@ -136,3 +136,28 @@ class StructuredTaskUpdateRequest(BaseModel):
 class StructuredTaskUpdateResponse(BaseModel):
     success: bool
     item: StructuredTaskRecordItem
+
+class CreateTaskToolArguments(StructuredTask):
+    pass
+
+
+class ListRecentTasksToolArguments(BaseModel):
+    limit: int = Field(default=5, ge=1, le=20)
+
+
+class ToolCallExecuteRequest(BaseModel):
+    text: str = Field(..., min_length=2, max_length=1000)
+
+
+class ToolCallDecision(BaseModel):
+    tool_name: Literal["create_task", "list_recent_tasks"]
+    arguments: Dict[str, Any] = Field(default_factory=dict)
+
+
+class ToolCallExecuteResponse(BaseModel):
+    success: bool
+    tool_name: Literal["create_task", "list_recent_tasks"]
+    arguments: Dict[str, Any]
+    tool_result: Dict[str, Any]
+    raw_text: str
+    elapsed_ms: int

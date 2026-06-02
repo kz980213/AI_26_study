@@ -9,6 +9,7 @@ import KnowledgeView from '../views/KnowledgeIngestView.vue'
 import AiChatView from '../views/AiChatView.vue'
 import ChatStreamView from '../views/ChatStreamView.vue'
 import StructuredTaskView from '../views/StructuredTaskView.vue'
+import ToolCallingView from '../views/ToolCallingView.vue'
 import { getToken } from '../utils/storage'
 
 const router = createRouter({
@@ -67,6 +68,11 @@ const router = createRouter({
       path: '/structured-tasks',
       name: 'structuredTasks',
       component: StructuredTaskView,
+    },
+    {
+      path: '/tool-calling',
+      name: 'toolCalling',
+      component: ToolCallingView,
     }
   ],
   

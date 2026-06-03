@@ -140,3 +140,33 @@ class ToolCallLog(Base):
     retry_count = Column(Integer, nullable=False, default=0)
 
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+class Document(Base):
+    __tablename__ = "documents"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    title = Column(String(200), nullable=False)
+    source_type = Column(String(50), nullable=False, default="text")
+    content = Column(Text, nullable=False)
+
+    chunk_size = Column(Integer, nullable=False, default=500)
+    chunk_overlap = Column(Integer, nullable=False, default=50)
+    chunk_count = Column(Integer, nullable=False, default=0)
+
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+
+class DocumentChunk(Base):
+    __tablename__ = "document_chunks"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    document_id = Column(Integer, nullable=False, index=True)
+    chunk_index = Column(Integer, nullable=False)
+
+    content = Column(Text, nullable=False)
+    char_start = Column(Integer, nullable=False)
+    char_end = Column(Integer, nullable=False)
+
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)

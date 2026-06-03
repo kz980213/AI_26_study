@@ -9,6 +9,7 @@
         <button @click="goToAiChat">进入 AI 聊天页</button>
         <button @click="goStructuredTasks">进入结构化任务页</button>
         <button @click="goToToolCalling">进入工具调用页</button>
+        <button @click="goToDocumentIngestion">进入文档 ingestion 页</button>
         <button @click="logout">退出登录</button>
     </div>
 </template>
@@ -57,4 +58,9 @@ const goStructuredTasks = () => {
 const goToToolCalling = () => {
     router.push('/tool-calling')
 }
+
+const goToDocumentIngestion = () => {
+    router.push('/document-ingestion')
+}
+
 </script>

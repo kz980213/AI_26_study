@@ -10,6 +10,7 @@ import AiChatView from '../views/AiChatView.vue'
 import ChatStreamView from '../views/ChatStreamView.vue'
 import StructuredTaskView from '../views/StructuredTaskView.vue'
 import ToolCallingView from '../views/ToolCallingView.vue'
+import DocumentIngestionView from '../views/DocumentIngestionView.vue'
 import { getToken } from '../utils/storage'
 
 const router = createRouter({
@@ -73,6 +74,11 @@ const router = createRouter({
       path: '/tool-calling',
       name: 'toolCalling',
       component: ToolCallingView,
+    },
+    {
+      path: '/document-ingestion',
+      name: 'documentIngestion',
+      component: DocumentIngestionView,
     }
   ],
   

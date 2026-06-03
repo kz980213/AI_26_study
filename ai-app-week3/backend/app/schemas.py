@@ -192,3 +192,49 @@ class ToolDefinitionItem(BaseModel):
 
 class ToolDefinitionListResponse(BaseModel):
     items: list[ToolDefinitionItem]
+
+class DocumentIngestTextRequest(BaseModel):
+    title: str = Field(..., min_length=1, max_length=200)
+    content: str = Field(..., min_length=10)
+    chunk_size: int = Field(default=500, ge=100, le=2000)
+    chunk_overlap: int = Field(default=50, ge=0, le=500)
+
+
+class DocumentItem(BaseModel):
+    id: int
+    title: str
+    source_type: str
+    chunk_size: int
+    chunk_overlap: int
+    chunk_count: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class DocumentChunkItem(BaseModel):
+    id: int
+    document_id: int
+    chunk_index: int
+    content: str
+    char_start: int
+    char_end: int
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class DocumentIngestTextResponse(BaseModel):
+    success: bool
+    document: DocumentItem
+    chunks: list[DocumentChunkItem]
+
+
+class DocumentListResponse(BaseModel):
+    items: list[DocumentItem]
+
+
+class DocumentChunkListResponse(BaseModel):
+    items: list[DocumentChunkItem]

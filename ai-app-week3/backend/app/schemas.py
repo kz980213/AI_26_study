@@ -198,6 +198,7 @@ class DocumentIngestTextRequest(BaseModel):
     content: str = Field(..., min_length=10)
     chunk_size: int = Field(default=500, ge=100, le=2000)
     chunk_overlap: int = Field(default=50, ge=0, le=500)
+    split_strategy: Literal["chars", "markdown_headings"] = "chars"
 
 
 class DocumentItem(BaseModel):
@@ -220,7 +221,16 @@ class DocumentChunkItem(BaseModel):
     content: str
     char_start: int
     char_end: int
+    is_active: bool = True
+    quality_status: Literal[
+        "unknown",
+        "good",
+        "needs_review",
+        "bad",
+    ] = "unknown"
+    quality_note: Optional[str] = None
     created_at: datetime
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -238,3 +248,62 @@ class DocumentListResponse(BaseModel):
 
 class DocumentChunkListResponse(BaseModel):
     items: list[DocumentChunkItem]
+
+class DocumentRechunkRequest(BaseModel):
+    chunk_size: int = Field(default=500, ge=100, le=2000)
+    chunk_overlap: int = Field(default=50, ge=0, le=500)
+    split_strategy: Literal["chars", "markdown_headings"] = "chars"
+
+
+class DocumentRechunkResponse(BaseModel):
+    success: bool
+    document: DocumentItem
+    chunks: list[DocumentChunkItem]
+
+class DocumentChunkSearchItem(BaseModel):
+    id: int
+    document_id: int
+    document_title: str
+    chunk_index: int
+    content: str
+    char_start: int
+    char_end: int
+    is_active: bool = True
+    quality_status: Literal[
+        "unknown",
+        "good",
+        "needs_review",
+        "bad",
+    ] = "unknown"
+    quality_note: Optional[str] = None
+    created_at: datetime
+
+class DocumentChunkSearchResponse(BaseModel):
+    items: list[DocumentChunkSearchItem]
+
+class DocumentChunkUpdateRequest(BaseModel):
+    content: str = Field(..., min_length=1, max_length=8000)
+    is_active: bool = True
+    quality_status: Literal[
+        "unknown",
+        "good",
+        "needs_review",
+        "bad",
+    ] = "unknown"
+    quality_note: Optional[str] = Field(default=None, max_length=500)
+
+class DocumentDetailResponse(BaseModel):
+    item: DocumentItem
+
+class DocumentChunkUpdateResponse(BaseModel):
+    success: bool
+    item: DocumentChunkItem
+
+class DocumentStatsResponse(BaseModel):
+    total_documents: int
+    total_chunks: int
+    active_chunks: int
+    inactive_chunks: int
+    quality_counts: Dict[str, int]
+    average_chunks_per_document: float
+    latest_document: Optional[DocumentItem] = None

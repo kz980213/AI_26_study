@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, DateTime, ForeignKey, String, Text
+from sqlalchemy import Column, Integer, DateTime, ForeignKey, String, Text, Boolean
 from app.database import Base
 
 import uuid
@@ -169,4 +169,10 @@ class DocumentChunk(Base):
     char_start = Column(Integer, nullable=False)
     char_end = Column(Integer, nullable=False)
 
+    is_active = Column(Boolean, nullable=False, default=True)
+
+    quality_status = Column(String(30), nullable=False, default="unknown")
+    quality_note = Column(Text, nullable=True)
+
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=True)

@@ -3,11 +3,13 @@ from fastapi.exceptions import HTTPException as FastAPIHTTPException, RequestVal
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import health, auth, users, stream, chat, task_parser, knowledge, ai_stream, structured_output, tool_calling, documents
 from app.exceptions import http_exception_handler, validation_exception_handler
-from app.database import Base, engine
+from app.database import Base, engine, SessionLocal
 from app.middlewares import request_log_middleware
 import logging
 from app.config import settings
 from app.services.db_migration_service import ensure_llm_call_log_prompt_columns
+
+from app.services.document_migration_service import ensure_document_chunk_manage_columns
 
 
 logging.basicConfig(
@@ -16,6 +18,12 @@ logging.basicConfig(
 )
 
 Base.metadata.create_all(bind=engine)
+
+db = SessionLocal()
+try:
+    ensure_document_chunk_manage_columns(db)
+finally:
+    db.close()
 
 ensure_llm_call_log_prompt_columns()
 

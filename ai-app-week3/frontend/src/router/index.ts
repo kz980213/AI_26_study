@@ -11,6 +11,7 @@ import ChatStreamView from '../views/ChatStreamView.vue'
 import StructuredTaskView from '../views/StructuredTaskView.vue'
 import ToolCallingView from '../views/ToolCallingView.vue'
 import DocumentIngestionView from '../views/DocumentIngestionView.vue'
+import EmbeddingDebugView from "../views/EmbeddingDebugView.vue";
 import { getToken } from '../utils/storage'
 
 const router = createRouter({
@@ -79,6 +80,11 @@ const router = createRouter({
       path: '/document-ingestion',
       name: 'documentIngestion',
       component: DocumentIngestionView,
+    },
+    {
+      path: '/embedding-debug',
+      name: 'embeddingDebug',
+      component: EmbeddingDebugView,
     }
   ],
   

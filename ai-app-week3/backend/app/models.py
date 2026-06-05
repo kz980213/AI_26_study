@@ -4,6 +4,8 @@ from app.database import Base
 import uuid
 from datetime import datetime
 
+from sqlalchemy.orm import relationship
+
 
 class User(Base):
     __tablename__ = "users"
@@ -176,3 +178,33 @@ class DocumentChunk(Base):
 
     created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
     updated_at = Column(DateTime, nullable=True)
+
+class ChunkEmbedding(Base):
+    __tablename__ = "chunk_embeddings"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    chunk_id = Column(
+        Integer,
+        ForeignKey("document_chunks.id"),
+        nullable=False,
+        index=True,
+        unique=True,
+    )
+
+    provider = Column(String(50), nullable=False, default="local")
+    model = Column(String(100), nullable=False, default="mock-hash-embedding-v1")
+    dimension = Column(Integer, nullable=False, default=32)
+
+    embedding_json = Column(Text, nullable=False)
+
+    status = Column(String(30), nullable=False, default="success")
+    error_message = Column(Text, nullable=True)
+
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(
+        DateTime,
+        nullable=False,
+        default=datetime.utcnow,
+        onupdate=datetime.utcnow,
+    )

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import Literal, Optional, Any, Dict
+from typing import Literal, Optional, Any, Dict, List
 from datetime import datetime
 
 class RegisterRequest(BaseModel):
@@ -307,3 +307,21 @@ class DocumentStatsResponse(BaseModel):
     quality_counts: Dict[str, int]
     average_chunks_per_document: float
     latest_document: Optional[DocumentItem] = None
+class EmbeddingSearchRequest(BaseModel):
+    query: str = Field(..., min_length=1, description="用户输入的问题")
+    document_id: Optional[int] = Field(default=None, description="可选，只在某个文档内检索")
+    top_k: int = Field(default=5, ge=1, le=20, description="返回最相似的前 K 条")
+
+
+class EmbeddingSearchResult(BaseModel):
+    chunk_id: int
+    document_id: int
+    content: str
+    score: float
+
+
+class EmbeddingSearchResponse(BaseModel):
+    query: str
+    top_k: int
+    total_candidates: int
+    results: List[EmbeddingSearchResult]

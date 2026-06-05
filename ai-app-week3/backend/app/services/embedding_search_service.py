@@ -10,6 +10,10 @@ from app.models import DocumentChunk, ChunkEmbedding
 
 from app.services.embedding_service import EmbeddingService
 
+import time
+
+from app.services.embedding_search_log_service import create_embedding_search_log
+
 # from app.services.embedding_service import create_mock_embedding
 # from app.services.embedding_service import parse_vector
 # from app.services.embedding_service import cosine_similarity
@@ -103,6 +107,7 @@ def search_similar_chunks(
     quality_status: Optional[str] = None,
     score_threshold: Optional[float] = None,
 ) -> Dict[str, Any]:
+    start_time = time.perf_counter()
     if not query or not query.strip():
         raise ValueError("query 不能为空")
 
@@ -196,7 +201,9 @@ def search_similar_chunks(
 
     scores = [item["score"] for item in scored_results if item["score"] >= 0]
 
-    return {
+    elapsed_ms = int((time.perf_counter() - start_time) * 1000)
+
+    result = {
         "query": query,
         "top_k": top_k,
         "document_id": document_id,
@@ -209,8 +216,24 @@ def search_similar_chunks(
         "matched_after_score_filter": len(scored_results),
         "max_score": max(scores) if scores else None,
         "min_score": min(scores) if scores else None,
+        "elapsed_ms": elapsed_ms,
         "results": top_results,
     }
+    
+    log_record = create_embedding_search_log(
+        db,
+        query=query,
+        top_k=top_k,
+        document_id=document_id,
+        only_active=only_active,
+        quality_status=quality_status,
+        score_threshold=score_threshold,
+        result=result,
+    )
+    
+    result["log_id"] = log_record.id
+    
+    return result
 
 
 

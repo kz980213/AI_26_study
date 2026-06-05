@@ -11,6 +11,23 @@ from app.services.embedding_search_service import EmbeddingSearchService
 
 from typing import Optional
 
+from app.services.embedding_search_log_service import (
+    list_recent_embedding_search_logs,
+    get_embedding_search_log,
+)
+
+from app.services.embedding_stats_service import (
+    get_embedding_stats,
+    list_missing_embedding_chunks,
+)
+
+from app.services.embedding_maintenance_service import (
+    delete_chunk_embedding,
+    rebuild_chunk_embedding,
+    rebuild_document_embeddings,
+    get_rag_readiness,
+)
+
 router = APIRouter(prefix="/ai/embeddings", tags=["embeddings"])
 
 
@@ -131,3 +148,83 @@ def search_embeddings(
         raise HTTPException(status_code=400, detail=str(e))
 
     return result
+
+@router.get("/search-logs/recent")
+def get_recent_embedding_search_logs(
+    limit: int = 20,
+    db: Session = Depends(get_db),
+):
+    return {
+        "items": list_recent_embedding_search_logs(db, limit=limit)
+    }
+
+
+@router.get("/search-logs/{log_id}")
+def get_embedding_search_log_detail(
+    log_id: int,
+    db: Session = Depends(get_db),
+):
+    record = get_embedding_search_log(db, log_id)
+
+    if not record:
+        raise HTTPException(status_code=404, detail="检索日志不存在")
+
+    return record
+
+@router.get("/stats")
+def get_embeddings_stats(
+    db: Session = Depends(get_db),
+):
+    return get_embedding_stats(db)
+
+
+@router.get("/missing-chunks")
+def get_missing_embedding_chunks(
+    document_id: Optional[int] = None,
+    limit: int = 50,
+    db: Session = Depends(get_db),
+):
+    return list_missing_embedding_chunks(
+        db=db,
+        document_id=document_id,
+        limit=limit,
+    )
+
+@router.delete("/chunks/{chunk_id}")
+def delete_embedding_for_chunk(
+    chunk_id: int,
+    db: Session = Depends(get_db),
+):
+    return delete_chunk_embedding(db=db, chunk_id=chunk_id)
+
+
+@router.post("/chunks/{chunk_id}/rebuild")
+def rebuild_embedding_for_chunk(
+    chunk_id: int,
+    db: Session = Depends(get_db),
+):
+    try:
+        return rebuild_chunk_embedding(db=db, chunk_id=chunk_id)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.post("/documents/{document_id}/rebuild")
+def rebuild_embeddings_for_document(
+    document_id: int,
+    db: Session = Depends(get_db),
+):
+    try:
+        return rebuild_document_embeddings(
+            db=db,
+            document_id=document_id,
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/rag-readiness")
+def get_embeddings_rag_readiness(
+    db: Session = Depends(get_db),
+):
+    return get_rag_readiness(db)

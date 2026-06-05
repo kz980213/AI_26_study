@@ -5,9 +5,20 @@ import {
   getChunkEmbedding,
   createDocumentChunkEmbeddings,
   searchChunkEmbeddings,
+  getRecentEmbeddingSearchLogs,
+  getEmbeddingStats,
+  getMissingEmbeddingChunks,
+  deleteChunkEmbedding,
+  rebuildChunkEmbedding,
+  rebuildDocumentEmbeddings,
+  getRagReadiness,
   type ChunkEmbeddingResponse,
   type BatchDocumentEmbeddingResponse,
   type EmbeddingSearchResponse,
+  type EmbeddingSearchLogItem,
+  type EmbeddingStatsResponse,
+  type MissingEmbeddingChunksResponse,
+  type RagReadinessResponse,
 } from "../api/embeddings";
 
 const chunkId = ref<number | null>(null);
@@ -36,6 +47,109 @@ const previewEmbedding = computed(() => {
 
 const searchQualityStatus = ref("");
 const searchScoreThreshold = ref<number | null>(null);
+
+const logsLoading = ref(false);
+const logsErrorMessage = ref("");
+const searchLogs = ref<EmbeddingSearchLogItem[]>([]);
+
+const statsLoading = ref(false);
+const statsErrorMessage = ref("");
+const embeddingStats = ref<EmbeddingStatsResponse | null>(null);
+
+const missingDocumentId = ref<number | null>(null);
+const missingLimit = ref(50);
+const missingLoading = ref(false);
+const missingErrorMessage = ref("");
+const missingChunks = ref<MissingEmbeddingChunksResponse | null>(null);
+
+const maintenanceChunkId = ref<number | null>(null);
+const maintenanceDocumentId = ref<number | null>(null);
+const maintenanceLoading = ref(false);
+const maintenanceErrorMessage = ref("");
+const maintenanceResult = ref<any | null>(null);
+
+const ragReadinessLoading = ref(false);
+const ragReadinessErrorMessage = ref("");
+const ragReadiness = ref<RagReadinessResponse | null>(null);
+
+async function handleDeleteChunkEmbedding() {
+  if (!maintenanceChunkId.value) {
+    maintenanceErrorMessage.value = "请先输入 chunk_id";
+    return;
+  }
+
+  maintenanceLoading.value = true;
+  maintenanceErrorMessage.value = "";
+  maintenanceResult.value = null;
+
+  try {
+    const res = await deleteChunkEmbedding(maintenanceChunkId.value);
+    maintenanceResult.value = res;
+  } catch (error: any) {
+    maintenanceErrorMessage.value =
+      error?.message || "删除 chunk embedding 失败";
+  } finally {
+    maintenanceLoading.value = false;
+  }
+}
+
+async function handleRebuildChunkEmbedding() {
+  if (!maintenanceChunkId.value) {
+    maintenanceErrorMessage.value = "请先输入 chunk_id";
+    return;
+  }
+
+  maintenanceLoading.value = true;
+  maintenanceErrorMessage.value = "";
+  maintenanceResult.value = null;
+
+  try {
+    const res = await rebuildChunkEmbedding(maintenanceChunkId.value);
+    maintenanceResult.value = res;
+  } catch (error: any) {
+    maintenanceErrorMessage.value =
+      error?.message || "重建 chunk embedding 失败";
+  } finally {
+    maintenanceLoading.value = false;
+  }
+}
+
+async function handleRebuildDocumentEmbeddings() {
+  if (!maintenanceDocumentId.value) {
+    maintenanceErrorMessage.value = "请先输入 document_id";
+    return;
+  }
+
+  maintenanceLoading.value = true;
+  maintenanceErrorMessage.value = "";
+  maintenanceResult.value = null;
+
+  try {
+    const res = await rebuildDocumentEmbeddings(maintenanceDocumentId.value);
+    maintenanceResult.value = res;
+  } catch (error: any) {
+    maintenanceErrorMessage.value =
+      error?.message || "重建文档 embeddings 失败";
+  } finally {
+    maintenanceLoading.value = false;
+  }
+}
+
+async function handleLoadRagReadiness() {
+  ragReadinessLoading.value = true;
+  ragReadinessErrorMessage.value = "";
+  ragReadiness.value = null;
+
+  try {
+    const res = await getRagReadiness();
+    ragReadiness.value = res;
+  } catch (error: any) {
+    ragReadinessErrorMessage.value =
+      error?.message || "获取 RAG 准备状态失败";
+  } finally {
+    ragReadinessLoading.value = false;
+  }
+}
 
 async function handleCreateEmbedding() {
   if (!chunkId.value) {
@@ -131,6 +245,54 @@ async function handleSearchEmbeddings() {
     searchErrorMessage.value = error?.message || "向量检索失败";
   } finally {
     searchLoading.value = false;
+  }
+}
+
+async function handleLoadSearchLogs() {
+  logsLoading.value = true;
+  logsErrorMessage.value = "";
+
+  try {
+    const res = await getRecentEmbeddingSearchLogs(20);
+    searchLogs.value = res.items;
+  } catch (error: any) {
+    logsErrorMessage.value = error?.message || "获取检索日志失败";
+  } finally {
+    logsLoading.value = false;
+  }
+}
+
+async function handleLoadEmbeddingStats() {
+  statsLoading.value = true;
+  statsErrorMessage.value = "";
+
+  try {
+    const res = await getEmbeddingStats();
+    embeddingStats.value = res;
+  } catch (error: any) {
+    statsErrorMessage.value =
+      error?.message || "获取 embedding 覆盖率统计失败";
+  } finally {
+    statsLoading.value = false;
+  }
+}
+
+async function handleLoadMissingChunks() {
+  missingLoading.value = true;
+  missingErrorMessage.value = "";
+  missingChunks.value = null;
+
+  try {
+    const res = await getMissingEmbeddingChunks(
+      missingDocumentId.value || null,
+      missingLimit.value || 50
+    );
+    missingChunks.value = res;
+  } catch (error: any) {
+    missingErrorMessage.value =
+      error?.message || "获取缺失 embedding chunks 失败";
+  } finally {
+    missingLoading.value = false;
   }
 }
 </script>
@@ -266,6 +428,15 @@ async function handleSearchEmbeddings() {
           :disabled="searchLoading"
           @click="handleSearchEmbeddings"
         >{{ searchLoading ? "检索中..." : "向量检索" }}</button>
+      </div>
+      <div class="item">
+        <span class="key">Log ID</span>
+        <span class="value">{{ searchResult?.log_id ?? "-" }}</span>
+      </div>
+
+      <div class="item">
+        <span class="key">耗时</span>
+        <span class="value">{{ searchResult?.elapsed_ms ?? "-" }} ms</span>
       </div>
 
       <p class="tip">说明：score_threshold 用来过滤低相似度结果。今天仍使用 mock embedding，重点验证召回控制流程。</p>
@@ -523,6 +694,359 @@ async function handleSearchEmbeddings() {
         <pre>{{ result }}</pre>
       </div>
     </section>
+    <section class="card">
+      <div class="section-title">
+        <p class="eyebrow">Week8 Day05</p>
+        <h2>最近检索日志</h2>
+        <p class="desc">查看最近的向量检索记录，用于排查 query、过滤条件、召回数量和耗时。</p>
+      </div>
+
+      <button
+        class="btn primary"
+        :disabled="logsLoading"
+        @click="handleLoadSearchLogs"
+      >{{ logsLoading ? "加载中..." : "刷新检索日志" }}</button>
+    </section>
+
+    <section v-if="logsErrorMessage" class="error-card">{{ logsErrorMessage }}</section>
+
+    <section v-if="searchLogs.length > 0" class="card result-card">
+      <div class="result-header">
+        <h2>日志列表</h2>
+        <span class="status">共 {{ searchLogs.length }} 条</span>
+      </div>
+
+      <div class="embedding-preview">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Query</th>
+              <th>TopK</th>
+              <th>候选</th>
+              <th>返回</th>
+              <th>Max Score</th>
+              <th>耗时</th>
+              <th>Chunk IDs</th>
+              <th>时间</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr v-for="log in searchLogs" :key="log.id">
+              <td>{{ log.id }}</td>
+              <td>{{ log.query }}</td>
+              <td>{{ log.top_k }}</td>
+              <td>{{ log.total_candidates }}</td>
+              <td>{{ log.returned_count }}</td>
+              <td>{{ log.max_score ?? "-" }}</td>
+              <td>{{ log.elapsed_ms }} ms</td>
+              <td>{{ log.result_chunk_ids.join(", ") }}</td>
+              <td>{{ log.created_at }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="card">
+      <div class="section-title">
+        <p class="eyebrow">Week8 Day06</p>
+        <h2>Embedding 覆盖率统计</h2>
+        <p class="desc">检查当前知识库中 active chunks 的 embedding 生成情况，判断是否存在缺失向量。</p>
+      </div>
+
+      <button
+        class="btn primary"
+        :disabled="statsLoading"
+        @click="handleLoadEmbeddingStats"
+      >{{ statsLoading ? "统计中..." : "刷新覆盖率统计" }}</button>
+    </section>
+
+    <section v-if="statsErrorMessage" class="error-card">{{ statsErrorMessage }}</section>
+
+    <section v-if="embeddingStats" class="card result-card">
+      <div class="result-header">
+        <h2>覆盖率总览</h2>
+        <span class="status">coverage: {{ embeddingStats.coverage_rate }}%</span>
+      </div>
+
+      <div class="grid">
+        <div class="item">
+          <span class="key">文档总数</span>
+          <span class="value">{{ embeddingStats.total_documents }}</span>
+        </div>
+
+        <div class="item">
+          <span class="key">Chunk 总数</span>
+          <span class="value">{{ embeddingStats.total_chunks }}</span>
+        </div>
+
+        <div class="item">
+          <span class="key">Active Chunks</span>
+          <span class="value">{{ embeddingStats.active_chunks }}</span>
+        </div>
+
+        <div class="item">
+          <span class="key">Embedding 记录数</span>
+          <span class="value">{{ embeddingStats.embedding_records }}</span>
+        </div>
+
+        <div class="item">
+          <span class="key">已向量化 Active</span>
+          <span class="value">{{ embeddingStats.embedded_active_chunks }}</span>
+        </div>
+
+        <div class="item">
+          <span class="key">缺失 Active</span>
+          <span class="value">{{ embeddingStats.missing_active_chunks }}</span>
+        </div>
+      </div>
+
+      <div class="embedding-preview">
+        <h3>文档覆盖率明细</h3>
+
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Document ID</th>
+              <th>标题</th>
+              <th>Total Chunks</th>
+              <th>Active</th>
+              <th>已向量化</th>
+              <th>缺失</th>
+              <th>覆盖率</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr v-for="doc in embeddingStats.documents" :key="doc.document_id">
+              <td>{{ doc.document_id }}</td>
+              <td>{{ doc.title }}</td>
+              <td>{{ doc.total_chunks }}</td>
+              <td>{{ doc.active_chunks }}</td>
+              <td>{{ doc.embedded_active_chunks }}</td>
+              <td>{{ doc.missing_active_chunks }}</td>
+              <td>{{ doc.coverage_rate }}%</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="card">
+      <div class="section-title">
+        <p class="eyebrow">Week8 Day06</p>
+        <h2>缺失 Embedding 的 Chunks</h2>
+        <p class="desc">查看还没有生成 embedding 的 active chunks。可以指定 document_id，也可以查看全局缺失列表。</p>
+      </div>
+
+      <div class="input-row search-row">
+        <div class="field">
+          <label class="label">Document ID，可选</label>
+          <input
+            v-model.number="missingDocumentId"
+            class="input"
+            type="number"
+            min="1"
+            placeholder="不填则查询全部"
+          />
+        </div>
+
+        <div class="field">
+          <label class="label">Limit</label>
+          <input v-model.number="missingLimit" class="input" type="number" min="1" max="200" />
+        </div>
+
+        <button
+          class="btn primary"
+          :disabled="missingLoading"
+          @click="handleLoadMissingChunks"
+        >{{ missingLoading ? "查询中..." : "查询缺失 Chunks" }}</button>
+      </div>
+
+      <p
+        class="tip"
+      >如果某篇文档存在缺失，可以回到 Day02 的“文档 Chunks 批量 Embedding”区域，输入 document_id 并勾选“跳过已生成”，补齐缺失 embedding。</p>
+    </section>
+
+    <section v-if="missingErrorMessage" class="error-card">{{ missingErrorMessage }}</section>
+
+    <section v-if="missingChunks" class="card result-card">
+      <div class="result-header">
+        <h2>缺失列表</h2>
+        <span class="status">missing: {{ missingChunks.missing_count }}</span>
+      </div>
+
+      <div class="embedding-preview">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Chunk ID</th>
+              <th>Document ID</th>
+              <th>Quality</th>
+              <th>Active</th>
+              <th>Status</th>
+              <th>内容预览</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr v-for="item in missingChunks.items" :key="item.chunk_id">
+              <td>{{ item.chunk_id }}</td>
+              <td>{{ item.document_id ?? "-" }}</td>
+              <td>{{ item.quality_status ?? "-" }}</td>
+              <td>{{ item.is_active }}</td>
+              <td>{{ item.status ?? "-" }}</td>
+              <td>{{ item.content_preview }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div
+        v-if="missingChunks.items.length === 0"
+        class="empty"
+      >当前范围内没有缺失 embedding 的 active chunks。</div>
+    </section>
+    <section class="card">
+      <div class="section-title">
+        <p class="eyebrow">Week8 Day07</p>
+        <h2>Embedding 维护面板</h2>
+        <p class="desc">删除、重建 chunk embedding，或强制重建某篇文档下所有 active chunks 的 embeddings。</p>
+      </div>
+
+      <div class="input-row search-row">
+        <div class="field">
+          <label class="label">Chunk ID</label>
+          <input
+            v-model.number="maintenanceChunkId"
+            class="input"
+            type="number"
+            min="1"
+            placeholder="例如 244"
+          />
+        </div>
+
+        <button
+          class="btn"
+          :disabled="maintenanceLoading"
+          @click="handleDeleteChunkEmbedding"
+        >删除 Chunk Embedding</button>
+
+        <button
+          class="btn primary"
+          :disabled="maintenanceLoading"
+          @click="handleRebuildChunkEmbedding"
+        >重建 Chunk Embedding</button>
+      </div>
+
+      <div class="input-row search-row maintenance-row">
+        <div class="field">
+          <label class="label">Document ID</label>
+          <input
+            v-model.number="maintenanceDocumentId"
+            class="input"
+            type="number"
+            min="1"
+            placeholder="例如 1"
+          />
+        </div>
+
+        <button
+          class="btn primary"
+          :disabled="maintenanceLoading"
+          @click="handleRebuildDocumentEmbeddings"
+        >强制重建文档 Embeddings</button>
+      </div>
+
+      <p class="tip">文档重建会使用 skip_existing=false，对已有 embedding 的 chunks 执行更新，适合 chunk 内容修改后重新生成向量。</p>
+    </section>
+
+    <section v-if="maintenanceErrorMessage" class="error-card">{{ maintenanceErrorMessage }}</section>
+
+    <section v-if="maintenanceResult" class="card result-card">
+      <div class="result-header">
+        <h2>维护结果</h2>
+        <span class="status">done</span>
+      </div>
+
+      <pre>{{ maintenanceResult }}</pre>
+    </section>
+    <section class="card">
+      <div class="section-title">
+        <p class="eyebrow">Week8 Day07</p>
+        <h2>Week9 RAG 准备检查</h2>
+        <p class="desc">检查当前文档、chunks、embedding 覆盖率是否已经满足进入 RAG 问答闭环的最低条件。</p>
+      </div>
+
+      <button
+        class="btn primary"
+        :disabled="ragReadinessLoading"
+        @click="handleLoadRagReadiness"
+      >{{ ragReadinessLoading ? "检查中..." : "检查 RAG 准备状态" }}</button>
+    </section>
+
+    <section v-if="ragReadinessErrorMessage" class="error-card">{{ ragReadinessErrorMessage }}</section>
+
+    <section v-if="ragReadiness" class="card result-card">
+      <div class="result-header">
+        <h2>RAG 准备状态</h2>
+        <span
+          class="status"
+          :class="{ danger: !ragReadiness.ready_for_rag }"
+        >{{ ragReadiness.ready_for_rag ? "Ready" : "Not Ready" }}</span>
+      </div>
+
+      <div class="embedding-preview">
+        <h3>检查项</h3>
+
+        <table class="table">
+          <thead>
+            <tr>
+              <th>检查项</th>
+              <th>状态</th>
+              <th>说明</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <tr v-for="item in ragReadiness.checks" :key="item.key">
+              <td>{{ item.label }}</td>
+              <td>{{ item.passed ? "通过" : "未通过" }}</td>
+              <td>{{ item.message }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="embedding-preview">
+        <h3>建议</h3>
+        <ul class="suggestion-list">
+          <li v-for="item in ragReadiness.suggestions" :key="item">{{ item }}</li>
+        </ul>
+      </div>
+
+      <div class="grid">
+        <div class="item">
+          <span class="key">Coverage</span>
+          <span class="value">{{ ragReadiness.stats.coverage_rate }}%</span>
+        </div>
+
+        <div class="item">
+          <span class="key">Active Chunks</span>
+          <span class="value">{{ ragReadiness.stats.active_chunks }}</span>
+        </div>
+
+        <div class="item">
+          <span class="key">Missing Active</span>
+          <span class="value">{{ ragReadiness.stats.missing_active_chunks }}</span>
+        </div>
+
+        <div class="item">
+          <span class="key">Embedding Records</span>
+          <span class="value">{{ ragReadiness.stats.embedding_records }}</span>
+        </div>
+      </div>
+    </section>
   </div>
 </template>
 
@@ -739,5 +1263,24 @@ pre {
 
 .field {
   min-width: 160px;
+}
+.empty {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 12px;
+  color: #64748b;
+  background: #f8fafc;
+}
+.status.danger {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.suggestion-list {
+  margin: 0;
+  padding-left: 20px;
+  color: #334155;
+  line-height: 1.8;
 }
 </style>

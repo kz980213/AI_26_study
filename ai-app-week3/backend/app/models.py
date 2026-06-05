@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, DateTime, ForeignKey, String, Text, Boolean
+from sqlalchemy import Column, Integer, DateTime, ForeignKey, String, Text, Boolean, Float
 from app.database import Base
 
 import uuid
@@ -208,3 +208,31 @@ class ChunkEmbedding(Base):
         default=datetime.utcnow,
         onupdate=datetime.utcnow,
     )
+
+class EmbeddingSearchLog(Base):
+    __tablename__ = "embedding_search_logs"
+
+    id = Column(Integer, primary_key=True, index=True)
+
+    query = Column(Text, nullable=False)
+    top_k = Column(Integer, nullable=False, default=5)
+
+    document_id = Column(Integer, nullable=True, index=True)
+    only_active = Column(Boolean, nullable=False, default=True)
+    quality_status = Column(String(30), nullable=True)
+    score_threshold = Column(Float, nullable=True)
+
+    total_candidates = Column(Integer, nullable=False, default=0)
+    matched_after_score_filter = Column(Integer, nullable=False, default=0)
+    returned_count = Column(Integer, nullable=False, default=0)
+
+    max_score = Column(Float, nullable=True)
+    min_score = Column(Float, nullable=True)
+
+    result_chunk_ids_json = Column(Text, nullable=False, default="[]")
+    results_json = Column(Text, nullable=False, default="[]")
+    applied_filters_json = Column(Text, nullable=False, default="{}")
+
+    elapsed_ms = Column(Integer, nullable=False, default=0)
+
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
